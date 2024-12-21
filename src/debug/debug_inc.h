@@ -65,8 +65,10 @@ public:
 		win_var(NULL), win_out(NULL), win_inp(NULL), active_win(WINI_CODE), input_y(0), global_mask(0), data_view(0xFF) {
         for (unsigned int i=0;i < WINI_MAX_INDEX;i++) {
             win_height[i] = dbg_def_win_height[i];
-            win_title[i] = dbg_def_win_titles[i];
-            win_vis[i] = (i != WINI_VAR);
+            win_title[i] = dbg_def_win_titles[i];\
+            // TODO: take these from config file.
+            // win_vis[i] = (i != WINI_VAR);
+            win_vis[i] = true;
             win_order[i] = i;
         }
     }

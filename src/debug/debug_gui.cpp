@@ -84,7 +84,9 @@ const unsigned int dbg_def_win_height[DBGBlock::WINI_MAX_INDEX] = {
     7,          /* WINI_REG */
     9,          /* WINI_DATA */
     12,         /* WINI_CODE */
-    5,          /* WINI_VAR */
+    // TODO: take these from config file.
+    // 5,          /* WINI_VAR */
+    1 + 24,          /* WINI_VAR */
     6           /* WINI_OUT */
 };
 

@@ -1997,6 +1997,7 @@ bool ParseCommand(char* str) {
 		name[15] = 0;
 
 		if(!name[0]) return false;
+		// TODO: Move this since it's sort of lying atm.
 		DEBUG_ShowMsg("DEBUG: Created debug var %s at %04X:%04X\n",name,seg,ofs);
 		CDebugVar::InsertVariable(name,(PhysPt)GetAddress(seg,ofs));
 		return true;
@@ -5468,13 +5469,20 @@ static void OutputVecTable(char* filename) {
 static void DrawVariables(void) {
 	if (CDebugVar::varList.empty()) return;
 
+	unsigned int vars_per_row = 4;
+
 	char buffer[DEBUG_VAR_BUF_LEN];
 	std::vector<CDebugVar*>::size_type s = CDebugVar::varList.size();
 	bool windowchanges = false;
 
 	for(std::vector<CDebugVar*>::size_type i = 0; i != s; i++) {
 
-		if (i == 4*3) {
+		// TODO: take these from config file.
+		// if (i == 4*3) {
+		// 	/* too many variables */
+		// 	break;
+		// }
+		if (i == (dbg.win_height[DBGBlock::WINI_VAR]-1)*vars_per_row) {
 			/* too many variables */
 			break;
 		}
@@ -5498,8 +5506,9 @@ static void DrawVariables(void) {
 		}
 
 		if (varchanges) {
-			unsigned int y = (unsigned int)(i / 3u);
-			unsigned int x = (i % 3u) * 26u;
+			// TODO: This assumes 3 vars per row.
+			unsigned int y = (unsigned int)(i / vars_per_row);
+			unsigned int x = (i % vars_per_row) * 26u;
 			mvwprintw(dbg.win_var, (int)y,  (int)x, "%s", dv->GetName());
 			mvwprintw(dbg.win_var, (int)y, ((int)x + DEBUG_VAR_BUF_LEN + 1), "%s", buffer);
 			windowchanges = true; //Something has changed in this window
