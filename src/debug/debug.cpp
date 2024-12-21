@@ -5469,7 +5469,13 @@ static void OutputVecTable(char* filename) {
 static void DrawVariables(void) {
 	if (CDebugVar::varList.empty()) return;
 
-	unsigned int vars_per_row = 4;
+    // TODO: It would be better to calc this from window width.
+	int charactersVarTakesUp = 26;
+	int maxy, maxx; getmaxyx(dbg.win_var,maxy,maxx);
+	// log to std out
+	// printf("maxx: %d\n",maxx);
+	DEBUG_ShowMsg("maxx: %d\n",maxx);
+	int vars_per_row = maxx / charactersVarTakesUp;
 
 	char buffer[DEBUG_VAR_BUF_LEN];
 	std::vector<CDebugVar*>::size_type s = CDebugVar::varList.size();
@@ -5498,6 +5504,7 @@ static void DrawVariables(void) {
 		} else {
 			if ( dv->HasValue() && dv->GetValue() == value) {
 				//It already had a value and it didn't change (most likely case)
+				snprintf(buffer,DEBUG_VAR_BUF_LEN, "0x%04x", value);
 			} else {
 				dv->SetValue(true,value);
 				snprintf(buffer,DEBUG_VAR_BUF_LEN, "0x%04x", value);
@@ -5505,17 +5512,19 @@ static void DrawVariables(void) {
 			}
 		}
 
-		if (varchanges) {
+		// if (varchanges) {
 			// TODO: This assumes 3 vars per row.
 			unsigned int y = (unsigned int)(i / vars_per_row);
 			unsigned int x = (i % vars_per_row) * 26u;
 			mvwprintw(dbg.win_var, (int)y,  (int)x, "%s", dv->GetName());
 			mvwprintw(dbg.win_var, (int)y, ((int)x + DEBUG_VAR_BUF_LEN + 1), "%s", buffer);
 			windowchanges = true; //Something has changed in this window
-		}
+		// }
 	}
 
-	if (windowchanges) wrefresh(dbg.win_var);
+	// if (windowchanges) wrefresh(dbg.win_var);
+	// wclear(dbg.win_var);
+	wrefresh(dbg.win_var);
 }
 #undef DEBUG_VAR_BUF_LEN
 // HEAVY DEBUGGING STUFF

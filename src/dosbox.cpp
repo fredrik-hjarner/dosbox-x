@@ -5199,6 +5199,15 @@ void DOSBOX_SetupConfigSections(void) {
     Pstring->Set_values(driveletters);
     Pstring->SetBasic(true);
 
+    /* debugger options */
+    // TODO: I can't get the config to work. I think that's because the
+    // debugger is not initialized in a controlled manner.
+    secprop=control->AddSection_prop("debugger",&Null_Init,false);
+
+    Pint = secprop->Add_int("window_var_height",Property::Changeable::OnlyAtStart,5);
+    Pint = secprop->Add_int("window_var_vars_per_row",Property::Changeable::OnlyAtStart,3);
+    Pbool = secprop->Add_bool("window_var_show_address",Property::Changeable::OnlyAtStart,false);
+
     //TODO ?
     control->AddSection_line("autoexec",&Null_Init);
     AddMessages();
