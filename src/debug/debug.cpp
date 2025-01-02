@@ -323,6 +323,7 @@ bool IsDebuggerActive(void) {
     return debugging;
 }
 
+// TODO: Look here.
 bool IsDebuggerRunwatch(void) {
     return debug_running;
 }
@@ -2297,6 +2298,7 @@ bool ParseCommand(char* str) {
 		return true;
 	}
 
+	// TODO: Look here.
 	if (command == "RUNWATCH") {
 		auto oldcore = cpudecoder;
 		runnormal = false;
@@ -5056,8 +5058,29 @@ static void LogCPUInfo(void) {
     DEBUG_EndPagedContent();
 }
 
+// TODO: Look here.
 #if C_HEAVY_DEBUG
 static void LogInstruction(uint16_t segValue, uint32_t eipValue,  ofstream& out) {
+	// TODO: This is just a hack.
+	if (!cpuLogFile.is_open()) {
+		cpuLogFile.open("LOGCPU.TXT");
+	}
+	if (cpuLogType == 1) { //Log only cs:ip.
+		static std::string buffer;
+		static int bufferCount = 0;
+		const int BUFFER_FLUSH_SIZE = 20;
+		buffer += std::to_string(SegValue(cs)) + "\n";
+		bufferCount++;
+		
+		if (bufferCount >= BUFFER_FLUSH_SIZE) {
+			out << buffer;
+			buffer.clear();
+			bufferCount = 0;
+		}
+		return;
+	}
+
+
 	static char empty[23] = { 32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,0 };
 
 	if (cpuLogType == 3) { //Log only cs:ip.
@@ -5655,8 +5678,16 @@ void DEBUG_HeavyWriteLogInstruction(void) {
 }
 
 bool DEBUG_HeavyIsBreakpoint(void) {
+	// TODO: If I understand it correctly then this always runs once per instruction.
+	// So I should be able to output log file here even though game is running.
+	// or maybe I would add a check for if watching (debug_running).
+	// anyway I should be able to see if the traces make sense or if there are big gaps between
+	// instructions, i.e. skipping more than one eip.
+	// Just call a modified version of LogInstruction function.
+	LogInstruction(SegValue(cs),reg_eip,cpuLogFile); // TODO: remove if not working.
 	if (cpuLog) {
 		if (cpuLogCounter>0) {
+			// TODO: Look here.
 			LogInstruction(SegValue(cs),reg_eip,cpuLogFile);
 			cpuLogCounter--;
 		}
