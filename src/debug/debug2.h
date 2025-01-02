@@ -88,21 +88,45 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
 	static int bufferCount = 0;
 	const int BUFFER_FLUSH_SIZE = 20;
 	
-	// Create the segment:offset string with hex formatting
+	// Get the physical address and disassemble
+	PhysPt start = (PhysPt)GetAddress(segValue, eipValue);
+	char dline[200];
+	Bitu size = DasmI386(dline, start, reg_eip, cpu.code.big);
+	
+	// Format the address
 	std::stringstream addressStream;
 	addressStream << std::hex << std::uppercase << std::setfill('0') 
 				 << std::setw(4) << SegValue(cs) << ":"
 				 << std::setw(4) << reg_eip;
 	std::string address = addressStream.str();
+
+	// Get the instruction bytes
+	std::stringstream bytesStream;
+	for (Bitu i=0; i<size; i++) {
+		uint8_t value;
+		if (mem_readb_checked((PhysPt)(start+i), &value)) {
+			bytesStream << "?? ";
+		} else {
+			bytesStream << std::hex << std::uppercase << std::setfill('0') 
+					   << std::setw(2) << static_cast<int>(value) << " ";
+		}
+	}
 	
 	// Only add to buffer if this is a new address
 	if (uniqueAddresses.insert(address).second) {
-		buffer << address << "\n";
+		buffer << address << "    "  // 4 spaces after address
+			   << bytesStream.str() 
+			   << std::setfill(' ') << std::setw(20 - bytesStream.str().length()) << " "  // padding between opcodes and asm
+			   << std::setw(30) << std::left << dline  // left-aligned assembly with 30 char width
+			   << "\n";
 	}
 	bufferCount++;
+
+	std::string bufferAsString = buffer.str();
 	
-	if (bufferCount >= BUFFER_FLUSH_SIZE) {
-		out << buffer.str();
+	if (bufferCount >= BUFFER_FLUSH_SIZE && bufferAsString.length() > 0) {
+		out << bufferAsString;
+		
 		buffer.str("");
 		buffer.clear();
 		bufferCount = 0;
