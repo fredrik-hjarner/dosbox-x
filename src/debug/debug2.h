@@ -1,3 +1,5 @@
+// No. Dont add any includes!!!
+
 // static void LogInstruction(uint16_t segValue, uint32_t eipValue,  ofstream& out) {
 
 // 	static char empty[23] = { 32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,0 };
@@ -86,9 +88,11 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
 	static int bufferCount = 0;
 	const int BUFFER_FLUSH_SIZE = 20;
 	
-	// Create the segment:offset string
+	// Create the segment:offset string with hex formatting
 	std::stringstream addressStream;
-	addressStream << SegValue(cs) << ":" << reg_eip;
+	addressStream << std::hex << std::uppercase << std::setfill('0') 
+				 << std::setw(4) << SegValue(cs) << ":"
+				 << std::setw(4) << reg_eip;
 	std::string address = addressStream.str();
 	
 	// Only add to buffer if this is a new address
