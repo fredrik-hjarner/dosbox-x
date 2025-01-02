@@ -71,6 +71,11 @@
 // 	out << endl;
 // }
 
+// Ignore that these imports are incomplete or look weird. It is correct.
+// #include <set> 
+
+static std::set<std::string> uniqueAddresses;
+
 static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out) {
 	// TODO: This is just a hack.
 	if (!cpuLogFile.is_open()) {
@@ -81,7 +86,15 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
 	static int bufferCount = 0;
 	const int BUFFER_FLUSH_SIZE = 20;
 	
-	buffer << SegValue(cs) << ":" << reg_eip << "\n";
+	// Create the segment:offset string
+	std::stringstream addressStream;
+	addressStream << SegValue(cs) << ":" << reg_eip;
+	std::string address = addressStream.str();
+	
+	// Only add to buffer if this is a new address
+	if (uniqueAddresses.insert(address).second) {
+		buffer << address << "\n";
+	}
 	bufferCount++;
 	
 	if (bufferCount >= BUFFER_FLUSH_SIZE) {
