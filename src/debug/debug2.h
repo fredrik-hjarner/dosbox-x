@@ -124,7 +124,7 @@ class IPCPipe {
     const char* pipePath = "/tmp/dosbox_debug_pipe";
     bool isOpen;
     int writeCounter = 0;
-    const int CHECK_INTERVAL = 200;
+    const int CHECK_INTERVAL = 5000;
 
 public:
     IPCPipe() : fd(-1), isOpen(false) {
@@ -164,9 +164,8 @@ public:
                 int bytesAvailable;
                 if (ioctl(fd, FIONREAD, &bytesAvailable) != -1) {
 					// TODO: Or I can show something "graphically" like a progress bar =========== that shrinks and grows.
-                    std::cerr << "\n*** DEBUG PIPE STATUS ***\n"
-                             << "Bytes in buffer: " << bytesAvailable 
-                             << " bytes (" << (bytesAvailable / 1024.0) << " KB)" << std::endl;
+                    std::cerr << "Bytes in pipe buffer: " << bytesAvailable 
+                              << " bytes (" << (bytesAvailable / 1024.0) << " KB)" << std::endl;
                 }
                 writeCounter = 0;  // Reset counter after check
             }
@@ -201,7 +200,8 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     std::string address = addressStream.str();
     
     // Only add to buffer if this is a new address
-    if (uniqueAddresses.insert(address).second || true) { // TODO: The true is just a hack. I wanted to test to output it all.
+    // if (uniqueAddresses.insert(address).second || true) { // TODO: The true is just a hack. I wanted to test to output it all.
+    if (uniqueAddresses.insert(address).second) { // TODO: The true is just a hack. I wanted to test to output it all.
         // Get the physical address and disassemble
         PhysPt start = (PhysPt)GetAddress(segValue, eipValue);
         char dline[200];
@@ -252,6 +252,8 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     std::string bufferAsString = buffer.str();
     
     if (bufferCount >= BUFFER_FLUSH_SIZE && bufferAsString.length() > 0) {
+        // out << bufferAsString; // print to file instead of pipe
+
         // Instead of writing to file, write to pipe
         if (debugPipe.openPipe()) {
             debugPipe.write(bufferAsString);
