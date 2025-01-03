@@ -78,6 +78,34 @@
 
 static std::set<std::string> uniqueAddresses;
 
+// << EMS window 1 >> e000-e3ff
+// << EMS window 2 >> e400-e7ff
+// << EMS window 3 >> e800-ebff
+// << EMS window 4 >> ec00-efff
+
+static bool IsGraphics565A(uint16_t segment) {
+	return segment == 0x565A;
+}
+static bool IsGraphics5677(uint16_t segment) {
+	return segment == 0x5677;
+}
+static bool IsGraphics5FBE(uint16_t segment) {
+	return segment == 0x5FBE;
+}
+
+static bool IsEmsWindow1(uint16_t segment) {
+	return (segment >= 0xE000 && segment <= 0xE3FF);
+}
+static bool IsEmsWindow2(uint16_t segment) {
+	return (segment >= 0xE400 && segment <= 0xE7FF);
+}
+static bool IsEmsWindow3(uint16_t segment) {
+	return (segment >= 0xE800 && segment <= 0xEBFF);
+}
+static bool IsEmsWindow4(uint16_t segment) {
+	return (segment >= 0xEC00 && segment <= 0xEFFF);
+}
+
 static bool IsVideoBIOS(uint16_t segment) {
 	return (segment >= 0xC000 && segment <= 0xC7FF);
 }
@@ -124,7 +152,7 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
 		
 		buffer << address << "    "  // 4 spaces after address
 			   << bytesStream.str() 
-			   << std::setfill(' ') << std::setw(25 - bytesStream.str().length()) << " "  // padding between opcodes and asm
+			   << std::setfill(' ') << std::setw(30 - bytesStream.str().length()) << " "  // padding between opcodes and asm
 			   << std::setw(35) << std::left << dline;  // left-aligned assembly with 30 char width
 
 		// Add BIOS indicator if in BIOS range
@@ -132,6 +160,20 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
 			buffer << std::setw(25) << "<< Motherboard BIOS >>";
 		} else if (IsVideoBIOS(SegValue(cs))) {
 			buffer << std::setw(25) << "<< Video BIOS >>";
+		} else if (IsEmsWindow1(SegValue(cs))) {
+			buffer << std::setw(25) << "<< EMS window 1 >>";
+		} else if (IsEmsWindow2(SegValue(cs))) {
+			buffer << std::setw(25) << "<< EMS window 2 >>";
+		} else if (IsEmsWindow3(SegValue(cs))) {
+			buffer << std::setw(25) << "<< EMS window 3 >>";
+		} else if (IsEmsWindow4(SegValue(cs))) {
+			buffer << std::setw(25) << "<< EMS window 4 >>";
+		} else if (IsGraphics565A(SegValue(cs))) {
+			buffer << std::setw(25) << "<< Graphics1 cant find in EXE >>";
+		} else if (IsGraphics5677(SegValue(cs))) {
+			buffer << std::setw(25) << "<< Graphics2 cant find in EXE >>";
+		} else if (IsGraphics5FBE(SegValue(cs))) {
+			buffer << std::setw(25) << "<< Graphics3 cant find in EXE >>";
 		}
 		
 		buffer << "\n";
