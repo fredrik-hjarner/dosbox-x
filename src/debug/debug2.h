@@ -114,6 +114,7 @@ static bool IsMotherboardBIOS(uint16_t segment) {
 	return (segment >= 0xF000 && segment <= 0xFFFF);
 }
 
+// TODO: Refactor this is getting messy. I could have more small helper functions.
 static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out) {
 	// TODO: This is just a hack.
 	if (!cpuLogFile.is_open()) {
@@ -190,3 +191,25 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
 		bufferCount = 0;
 	}
 }
+
+/*
+TODO:
+- Log when a function was entered by checking if the previous instruction was a call (or similar).
+- Log when a function when instruction is ret (or similar).
+- Add many more items to my "memory map". I can add functions that I name for example.
+  - I can even for certain code or functions only show like that it was called and exited and skips the rest if it's not interesting.
+    - I can have som kind of toggle in my map to show or hide the code.
+- I probably should add some or all registers because then I could see for example which places in memory was fetched and updated.
+- I have an idea of using named pipe.
+  - dosbox-x just spits out every single instruction to a named pipe,
+  - then js listens to it and it can either display it in terminal but also take commands at the same time.
+    - js can have command to listen or to discard or maybe to do memory dumps too (but I dont quite know how that would work).
+	  - regarding memory dumps they should get unique names, not like now in dosvox-x when LOGCPU.TXT gets overwritten.
+
+
+
+
+
+
+
+*/
