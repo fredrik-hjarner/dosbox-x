@@ -187,13 +187,31 @@ public:
     }
     
     bool write(const std::string& message) {
-        // Just send the message directly
-        std::size_t written = ::write(sock_fd, message.c_str(), message.length());
-        if(written != message.length()) {
+        if (!is_connected) {
+            std::cerr << "\n\n*** ERROR: write: Failed to connect to debug socket: " << strerror(errno) << " (errno: " << errno << ") ***\n\n" << std::endl;
+            return false;
+        }
+        
+        // First send the message length (as 32-bit integer)
+        uint32_t length = message.length();
+        if (::write(sock_fd, &length, sizeof(length)) != sizeof(length)) {
+            std::cerr << "\n\n*** ERROR: write: Failed to send message length: " << strerror(errno) << " (errno: " << errno << ") ***\n\n" << std::endl;
+            is_connected = false;
+            return false;
+        }
+        
+        // Then send the actual message
+        ssize_t written = ::write(sock_fd, message.c_str(), length);
+        if (written != length) {
             std::cerr << "\n\n*** ERROR: write: Failed to send message: " << strerror(errno) << " (errno: " << errno << ") ***\n\n" << std::endl;
+            is_connected = false;
             return false;
         }
         return true;
+
+        // TODO: This might be faster but I don't know.
+        // Just send the message directly
+        // return ::write(sock_fd, message.c_str(), message.length()) == message.length();
     }
     
     ~UnixSocketSender() {
@@ -228,8 +246,8 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     
     // Only add to buffer if this is a new address
     // if (uniqueAddresses.insert(address).second || true) { // TODO: The true is just a hack. I wanted to test to output it all.
-    // if (uniqueAddresses.insert(address).second && keepInstruction) {
-    if (keepInstruction) {
+    if (uniqueAddresses.insert(address).second && keepInstruction) {
+    // if (keepInstruction) {
       
         buffer << LogInstructionWithHardCodedValues(segValue, eipValue);
 

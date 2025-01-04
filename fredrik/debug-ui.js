@@ -133,16 +133,16 @@ const server = net.createServer((socket) => {
     console.log('DOSBox-X connected');
     
     socket.on('data', (data) => {
-        // // Always process messages to maintain buffer state
-        // // but only output them if shouldLog is true
-        // let offset = 0;
-        // while (offset < data.length) {
-        //     // Each message starts with a 4-byte length prefix
-        //     // Once we have the length, we read that many bytes as the message
-        //     offset = messageBuffer === null
-        //         ? readMessageLength(data, offset)    // Reading length prefix
-        //         : readMessageContent(data, offset);  // Reading message content
-        // }
+        // Always process messages to maintain buffer state
+        // but only output them if shouldLog is true
+        let offset = 0;
+        while (offset < data.length) {
+            // Each message starts with a 4-byte length prefix
+            // Once we have the length, we read that many bytes as the message
+            offset = messageBuffer === null
+                ? readMessageLength(data, offset)    // Reading length prefix
+                : readMessageContent(data, offset);  // Reading message content
+        }
     });
 
     socket.on('error', (err) => {
