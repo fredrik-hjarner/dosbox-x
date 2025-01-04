@@ -148,68 +148,62 @@ static bool SkipSendingInstruction(uint16_t segment, uint32_t offset) {
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/un.h>
 
-class IPCPipe {
-    int fd;
-    const char* pipePath = "/tmp/dosbox_debug_pipe";
-    bool isOpen;
-    int writeCounter = 0;
-    const int CHECK_INTERVAL = 5000;
-
+class UnixSocketSender {
+private:
+    int sock_fd;
+    struct sockaddr_un addr;
+    bool is_connected;
+    
 public:
-    IPCPipe() : fd(-1), isOpen(false) {
-        // Create the named pipe if it doesn't exist
-        if (mkfifo(pipePath, 0666) == -1 && errno != EEXIST) {
-            std::cerr << "\n\n*** ERROR: Failed to create debug pipe: " << strerror(errno) 
-                     << " (errno: " << errno << ") ***\n\n" << std::endl;
+    UnixSocketSender() : sock_fd(-1), is_connected(false) {
+        // Create socket
+        sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (sock_fd == -1) {
+            // Handle socket creation error
+            std::cerr << "\n\n*** ERROR: Failed to create debug socket: " << strerror(errno) << " (errno: " << errno << ") ***\n\n" << std::endl;
+            return;
         }
+        
+        // Setup address structure
+        memset(&addr, 0, sizeof(addr));
+        addr.sun_family = AF_UNIX;
+        strncpy(addr.sun_path, "/tmp/debug_socket", sizeof(addr.sun_path) - 1);
     }
-
-    bool openPipe() {
-        if (!isOpen) {
-            // Open pipe for writing, non-blocking
-            // fd = open(pipePath, O_WRONLY | O_NONBLOCK);
-            fd = ::open(pipePath, O_WRONLY);
-            if (fd == -1) {
-                std::cerr << "\n\n*** ERROR: Failed to open debug pipe: " << strerror(errno)
-                         << " (errno: " << errno << ") ***\n"
-                         << "*** Pipe path: " << pipePath << " ***\n\n" << std::endl;
-                return false;
-            }
-            isOpen = (fd != -1);
+    
+    bool connect() {
+        if (is_connected) return true;
+        if (sock_fd == -1) {
+            std::cerr << "\n\n*** ERROR: connect: Failed to create debug socket: " << strerror(errno) << " (errno: " << errno << ") ***\n\n" << std::endl;
+            return false;
         }
-        return isOpen;
-    }
-
-    void write(const std::string& data) {
-        if (isOpen) {
-            if (::write(fd, data.c_str(), data.length()) == -1) {
-                std::cerr << "\n\n*** ERROR: Failed to write to debug pipe: " << strerror(errno)
-                         << " (errno: " << errno << ") ***\n"
-                         << "*** Pipe path: " << pipePath << " ***\n\n" << std::endl;
-            }
-
-            // Periodically check buffer size
-            if (++writeCounter >= CHECK_INTERVAL) {
-                int bytesAvailable;
-                if (ioctl(fd, FIONREAD, &bytesAvailable) != -1) {
-					// TODO: Or I can show something "graphically" like a progress bar =========== that shrinks and grows.
-                    std::cerr << "Bytes in pipe buffer: " << bytesAvailable 
-                              << " bytes (" << (bytesAvailable / 1024.0) << " KB)" << std::endl;
-                }
-                writeCounter = 0;  // Reset counter after check
-            }
+        
+        is_connected = (::connect(sock_fd, (struct sockaddr*)&addr, sizeof(addr)) == 0);
+        if (!is_connected) {
+            std::cerr << "\n\n*** ERROR: connect: Failed to connect to debug socket: " << strerror(errno) << " (errno: " << errno << ") ***\n\n" << std::endl;
         }
+        return is_connected;
     }
-
-    ~IPCPipe() {
-        if (isOpen) {
-            ::close(fd);
+    
+    bool write(const std::string& message) {
+        // Just send the message directly
+        std::size_t written = ::write(sock_fd, message.c_str(), message.length());
+        if(written != message.length()) {
+            std::cerr << "\n\n*** ERROR: write: Failed to send message: " << strerror(errno) << " (errno: " << errno << ") ***\n\n" << std::endl;
+            return false;
+        }
+        return true;
+    }
+    
+    ~UnixSocketSender() {
+        if (sock_fd != -1) {
+            close(sock_fd);
         }
     }
 };
 
-static IPCPipe debugPipe;
+static UnixSocketSender debugSocket;
 
 // TODO: Refactor this is getting messy. I could have more small helper functions.
 static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out) {
@@ -264,14 +258,15 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     }
     bufferCount++;
 
-    std::string bufferAsString = buffer.str();
-    
-    if (bufferCount >= BUFFER_FLUSH_SIZE && bufferAsString.length() > 0) {
-        // out << bufferAsString; // print to file instead of pipe
-
-        // Instead of writing to file, write to pipe
-        if (debugPipe.openPipe()) {
-            debugPipe.write(bufferAsString);
+    if (bufferCount >= BUFFER_FLUSH_SIZE && buffer.tellp() > 0) {
+        std::string bufferAsString = buffer.str();
+        
+        debugSocket.connect();
+        
+        // Write to socket if connected
+        if (!debugSocket.write(bufferAsString)) {
+            // Handle write failure - could log to a fallback file if needed
+            // out << bufferAsString;  // Uncomment if you want fallback to file
         }
         
         buffer.str("");
