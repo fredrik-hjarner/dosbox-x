@@ -50,30 +50,30 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
     out << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip << "  " << dline << "  " << res << "  " << ibytes;
 
 	out
-        << " EAX:" << setw(8) << reg_eax
-        << " EBX:" << setw(8) << reg_ebx
-	    << " ECX:" << setw(8) << reg_ecx
-        << " EDX:" << setw(8) << reg_edx
-	    << " ESI:" << setw(8) << reg_esi
-        << " EDI:" << setw(8) << reg_edi
+        << " A:" << setw(8) << reg_eax
+        << " B:" << setw(8) << reg_ebx
+	    << " C:" << setw(8) << reg_ecx
+        << " D:" << setw(8) << reg_edx
+	    << " SI:" << setw(8) << reg_esi
+        << " DI:" << setw(8) << reg_edi
 	    // << " EBP:" << setw(8) << reg_ebp
         // << " ESP:" << setw(8) << reg_esp
-        << " EBP:" << setw(4) << reg_bp // Not 100% sure I can rely on bp and sp being just within 16bits.
-        << " ESP:" << setw(4) << reg_sp  // Not 100% sure I can rely on bp and sp being just within 16bits.
+        << " BP:" << setw(4) << reg_bp // Not 100% sure I can rely on bp and sp being just within 16bits.
+        << " SP:" << setw(4) << reg_sp  // Not 100% sure I can rely on bp and sp being just within 16bits.
 	    << " DS:"  << setw(4) << SegValue(ds)
         << " ES:"  << setw(4) << SegValue(es);
 
     out
         // << " FS:"  << setw(4) << SegValue(fs) // seem to have no use
         // << " GS:"  << setw(4) << SegValue(gs) // seem to have no use
-        << " SS:"  << setw(4) << SegValue(ss)
-        << " CF:"  << (get_CF()>0)
-        << " ZF:"   << (get_ZF()>0)
-        << " SF:"  << (get_SF()>0)
-        << " OF:"  << (get_OF()>0)
-        << " AF:"   << (get_AF()>0)
-        << " PF:"  << (get_PF()>0)
-        << " IF:"  << GETFLAGBOOL(IF);
+        << " SS:"  << setw(4) << SegValue(ss);
+        // << " CF:"  << (get_CF()>0)
+        // << " ZF:"   << (get_ZF()>0)
+        // << " SF:"  << (get_SF()>0)
+        // << " OF:"  << (get_OF()>0)
+        // << " AF:"   << (get_AF()>0)
+        // << " PF:"  << (get_PF()>0)
+        // << " IF:"  << GETFLAGBOOL(IF);
 
     // out
         // << " TF:" << GETFLAGBOOL(TF) // Trap flag
@@ -170,6 +170,8 @@ public:
         memset(&addr, 0, sizeof(addr));
         addr.sun_family = AF_UNIX;
         strncpy(addr.sun_path, "/tmp/debug_socket", sizeof(addr.sun_path) - 1);
+
+        this->connect(); // connect immediately in constructor.
     }
     
     bool connect() {
@@ -191,27 +193,16 @@ public:
             std::cerr << "\n\n*** ERROR: write: Failed to connect to debug socket: " << strerror(errno) << " (errno: " << errno << ") ***\n\n" << std::endl;
             return false;
         }
-        
-        // First send the message length (as 32-bit integer)
-        uint32_t length = message.length();
-        if (::write(sock_fd, &length, sizeof(length)) != sizeof(length)) {
-            std::cerr << "\n\n*** ERROR: write: Failed to send message length: " << strerror(errno) << " (errno: " << errno << ") ***\n\n" << std::endl;
-            is_connected = false;
-            return false;
-        }
-        
-        // Then send the actual message
-        ssize_t written = ::write(sock_fd, message.c_str(), length);
-        if (written != length) {
+
+        // TODO: This might be faster but I don't know.
+        // Just send the message directly
+        std::size_t length = ::write(sock_fd, message.c_str(), message.length());
+        if (length != message.length()) {
             std::cerr << "\n\n*** ERROR: write: Failed to send message: " << strerror(errno) << " (errno: " << errno << ") ***\n\n" << std::endl;
             is_connected = false;
             return false;
         }
         return true;
-
-        // TODO: This might be faster but I don't know.
-        // Just send the message directly
-        // return ::write(sock_fd, message.c_str(), message.length()) == message.length();
     }
     
     ~UnixSocketSender() {
@@ -223,16 +214,16 @@ public:
 
 static UnixSocketSender debugSocket;
 
+std::stringstream buffer;
+int bufferCount = 0;
+int BUFFER_FLUSH_SIZE = 20;
+
 // TODO: Refactor this is getting messy. I could have more small helper functions.
 static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out) {
-    // Remove file handling code
-    // if (!cpuLogFile.is_open()) {
-    //     cpuLogFile.open("LOGCPU.TXT");
-    // }
-
-    static std::stringstream buffer;
-    static int bufferCount = 0;
-    const int BUFFER_FLUSH_SIZE = 20;
+    if(SkipSendingInstruction(segValue, eipValue)) {
+        bufferCount++; // always increment bufferCount. I can try not to in the future, dunno.
+        return;
+    }
 
     // Format the address
     std::stringstream addressStream;
@@ -240,14 +231,11 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
                  << std::setw(4) << SegValue(cs) << ":"
                  << std::setw(4) << reg_eip;
     std::string address = addressStream.str();
-
-    bool skipInstruction = SkipSendingInstruction(segValue, eipValue);
-    bool keepInstruction = !skipInstruction;
     
     // Only add to buffer if this is a new address
     // if (uniqueAddresses.insert(address).second || true) { // TODO: The true is just a hack. I wanted to test to output it all.
-    if (uniqueAddresses.insert(address).second && keepInstruction) {
-    // if (keepInstruction) {
+    // if (uniqueAddresses.insert(address).second) {
+    if (true) {
       
         buffer << LogInstructionWithHardCodedValues(segValue, eipValue);
 
@@ -279,13 +267,8 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     if (bufferCount >= BUFFER_FLUSH_SIZE && buffer.tellp() > 0) {
         std::string bufferAsString = buffer.str();
         
-        debugSocket.connect();
-        
         // Write to socket if connected
-        if (!debugSocket.write(bufferAsString)) {
-            // Handle write failure - could log to a fallback file if needed
-            // out << bufferAsString;  // Uncomment if you want fallback to file
-        }
+        debugSocket.write(bufferAsString);
         
         buffer.str("");
         buffer.clear();

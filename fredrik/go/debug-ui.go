@@ -41,14 +41,14 @@ func main() {
 	}
 	log.Println("Client connected")
 
-	// Just read and discard data
+	// Read data and write to stdout
 	buffer := make([]byte, 4096)
 	for {
-		_, err := conn.Read(buffer)
+		n, err := conn.Read(buffer)
 		if err != nil {
 			log.Println("Client disconnected")
 			return
 		}
-		// Discard data - no processing
+		os.Stdout.Write(buffer[:n]) // Write received data to stdout
 	}
-} 
+}
