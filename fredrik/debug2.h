@@ -2,7 +2,12 @@
 // Ignore that these imports are incomplete or look weird. It is correct.
 
 
-
+bool autoDisassemblerMode = true;
+// autoDisassemblerMode:
+//     true:
+//         Intended to be used to create automatic disassembly. It strips registers and will perhaps do some other stuff.
+//     false:
+//         Used for "live debugging".
 
 // This function is only supposed to be responsible for adding the instruction as text,
 // it has no other responsibilities.
@@ -44,44 +49,48 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
     }
     len = strlen(ibytes);
     if (len < 21) {
-        for (Bitu i = 0; i < 21 - len; i++) ibytes[len + i] = ' ';
+        for (Bitu i = 0; i < 21 - len; i++) {
+            ibytes[len + i] = ' ';
+        }
         ibytes[21] = 0;
     }
     out << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip << "  " << dline << "  " << res << "  " << ibytes;
 
-    // hard exit and explode with error if reg_esi or reg_edi are more than 0xFFFF
-    if (reg_esi > 0xFFFF || reg_edi > 0xFFFF) {
-        std::cerr << "\n\n*** ERROR: reg_esi or reg_edi are more than 0xFFFF ***\n\n" << std::endl;
-        exit(1);
+    if (!autoDisassemblerMode) {
+        // hard exit and explode with error if reg_esi or reg_edi are more than 0xFFFF
+        if (reg_esi > 0xFFFF || reg_edi > 0xFFFF) {
+            std::cerr << "\n\n*** ERROR: reg_esi or reg_edi are more than 0xFFFF ***\n\n" << std::endl;
+            exit(1);
+        }
+
+        out
+            << " A:" << setw(8) << reg_eax
+            << " B:" << setw(8) << reg_ebx
+            << " C:" << setw(8) << reg_ecx
+            << " D:" << setw(8) << reg_edx
+            // << " SI:" << setw(8) << reg_esi
+            // << " DI:" << setw(8) << reg_edi
+            << " SI:" << setw(4) << reg_si
+            << " DI:" << setw(4) << reg_di
+            // << " EBP:" << setw(8) << reg_ebp
+            // << " ESP:" << setw(8) << reg_esp
+            << " BP:" << setw(4) << reg_bp // Not 100% sure I can rely on bp and sp being just within 16bits.
+            << " SP:" << setw(4) << reg_sp  // Not 100% sure I can rely on bp and sp being just within 16bits.
+            << " DS:"  << setw(4) << SegValue(ds)
+            << " ES:"  << setw(4) << SegValue(es);
+
+        out
+            // << " FS:"  << setw(4) << SegValue(fs) // seem to have no use
+            // << " GS:"  << setw(4) << SegValue(gs) // seem to have no use
+            << " SS:"  << setw(4) << SegValue(ss);
+            // << " CF:"  << (get_CF()>0)
+            // << " ZF:"   << (get_ZF()>0)
+            // << " SF:"  << (get_SF()>0)
+            // << " OF:"  << (get_OF()>0)
+            // << " AF:"   << (get_AF()>0)
+            // << " PF:"  << (get_PF()>0)
+            // << " IF:"  << GETFLAGBOOL(IF);
     }
-
-	out
-        << " A:" << setw(8) << reg_eax
-        << " B:" << setw(8) << reg_ebx
-	    << " C:" << setw(8) << reg_ecx
-        << " D:" << setw(8) << reg_edx
-	    // << " SI:" << setw(8) << reg_esi
-        // << " DI:" << setw(8) << reg_edi
-        << " SI:" << setw(4) << reg_si
-        << " DI:" << setw(4) << reg_di
-	    // << " EBP:" << setw(8) << reg_ebp
-        // << " ESP:" << setw(8) << reg_esp
-        << " BP:" << setw(4) << reg_bp // Not 100% sure I can rely on bp and sp being just within 16bits.
-        << " SP:" << setw(4) << reg_sp  // Not 100% sure I can rely on bp and sp being just within 16bits.
-	    << " DS:"  << setw(4) << SegValue(ds)
-        << " ES:"  << setw(4) << SegValue(es);
-
-    out
-        // << " FS:"  << setw(4) << SegValue(fs) // seem to have no use
-        // << " GS:"  << setw(4) << SegValue(gs) // seem to have no use
-        << " SS:"  << setw(4) << SegValue(ss);
-        // << " CF:"  << (get_CF()>0)
-        // << " ZF:"   << (get_ZF()>0)
-        // << " SF:"  << (get_SF()>0)
-        // << " OF:"  << (get_OF()>0)
-        // << " AF:"   << (get_AF()>0)
-        // << " PF:"  << (get_PF()>0)
-        // << " IF:"  << GETFLAGBOOL(IF);
 
     // out
         // << " TF:" << GETFLAGBOOL(TF) // Trap flag
@@ -162,6 +171,7 @@ static bool SkipSendingInstruction(uint16_t segment, uint32_t offset) {
 #include <sys/ioctl.h>
 #include <sys/un.h>
 
+// TODO: autoDisassemblerMode does not need UnixSocketSender at all.
 class UnixSocketSender {
 private:
     int sock_fd;
@@ -224,6 +234,31 @@ public:
     }
 };
 
+std::string GetLabelForAddress(uint16_t segValue, uint32_t eipValue) {
+    // TODO: Add Vsync too.
+    if (IsMotherboardBIOS(SegValue(cs))) {
+        return "Motherboard BIOS";
+    } else if (IsVideoBIOS(SegValue(cs))) {
+        return "Video BIOS";
+    } else if (IsEmsWindow1(SegValue(cs))) {
+        return "EMS window 1";
+    } else if (IsEmsWindow2(SegValue(cs))) {
+        return "EMS window 2";
+    } else if (IsEmsWindow3(SegValue(cs))) {
+        return "EMS window 3";
+    } else if (IsEmsWindow4(SegValue(cs))) {
+        return "EMS window 4";
+    } else if (IsGraphics565A(SegValue(cs))) {
+        return "Graphics1 cant find in EXE";
+    } else if (IsGraphics5677(SegValue(cs))) {
+        return "Graphics2 cant find in EXE";
+    } else if (IsGraphics5FBE(SegValue(cs))) {
+        return "Graphics3 cant find in EXE";
+    }
+    return "";
+}
+
+// TODO: autoDisassemblerMode does not need UnixSocketSender at all.
 static UnixSocketSender debugSocket;
 
 std::stringstream buffer;
@@ -232,7 +267,8 @@ int BUFFER_FLUSH_SIZE = 20;
 
 // TODO: Refactor this is getting messy. I could have more small helper functions.
 static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out) {
-    if(SkipSendingInstruction(segValue, eipValue)) {
+    // In the disassembly I want all instructions.
+    if(!autoDisassemblerMode && SkipSendingInstruction(segValue, eipValue)) {
         bufferCount++; // always increment bufferCount. I can try not to in the future, dunno.
         return;
     }
@@ -246,46 +282,34 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     
     // Only add to buffer if this is a new address
     // if (uniqueAddresses.insert(address).second || true) { // TODO: The true is just a hack. I wanted to test to output it all.
-    // if (uniqueAddresses.insert(address).second) {
-    if (true) {
+    if (uniqueAddresses.insert(address).second) {
+    // if (true) {
       
-        buffer << LogInstructionWithHardCodedValues(segValue, eipValue);
-
-        // Add BIOS indicator if in BIOS range
-        if (IsMotherboardBIOS(SegValue(cs))) {
-            buffer << std::setw(25) << "<< Motherboard BIOS >>";
-        } else if (IsVideoBIOS(SegValue(cs))) {
-            buffer << std::setw(25) << "<< Video BIOS >>";
-        } else if (IsEmsWindow1(SegValue(cs))) {
-            buffer << std::setw(25) << "<< EMS window 1 >>";
-        } else if (IsEmsWindow2(SegValue(cs))) {
-            buffer << std::setw(25) << "<< EMS window 2 >>";
-        } else if (IsEmsWindow3(SegValue(cs))) {
-            buffer << std::setw(25) << "<< EMS window 3 >>";
-        } else if (IsEmsWindow4(SegValue(cs))) {
-            buffer << std::setw(25) << "<< EMS window 4 >>";
-        } else if (IsGraphics565A(SegValue(cs))) {
-            buffer << std::setw(25) << "<< Graphics1 cant find in EXE >>";
-        } else if (IsGraphics5677(SegValue(cs))) {
-            buffer << std::setw(25) << "<< Graphics2 cant find in EXE >>";
-        } else if (IsGraphics5FBE(SegValue(cs))) {
-            buffer << std::setw(25) << "<< Graphics3 cant find in EXE >>";
-        }
-        
-        buffer << "\n";
+        buffer
+            << LogInstructionWithHardCodedValues(segValue, eipValue)
+            << GetLabelForAddress(segValue, eipValue)
+            << "\n";
     }
     bufferCount++;
 
     if (bufferCount >= BUFFER_FLUSH_SIZE && buffer.tellp() > 0) {
         std::string bufferAsString = buffer.str();
-        
-        // Write to socket if connected
-        debugSocket.write(bufferAsString);
-        
+
+        if(autoDisassemblerMode) {
+            if (!cpuLogFile.is_open()) {
+                cpuLogFile.open("auto_disassembly.txt");
+            }
+            out << bufferAsString; // print to file instead of pipe
+        } else {
+            // Write to socket if connected
+            debugSocket.write(bufferAsString);
+            
+        }
         buffer.str("");
         buffer.clear();
         bufferCount = 0;
     }
+
 }
 
 /*

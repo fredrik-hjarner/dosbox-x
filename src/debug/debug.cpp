@@ -5059,7 +5059,7 @@ static void LogCPUInfo(void) {
 }
 
 // TODO: Super-hacky but I don't care, I want progress.
-#include "debug2.h"
+#include "../../fredrik/debug2.h"
 
 // TODO: Look here.
 #if C_HEAVY_DEBUG

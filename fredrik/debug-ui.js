@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 
+/////////////////////////////////////////////////////
+// DOCS:                                           //
+// I'm printing info to stderr and data to stdout, //
+// so that I can pipe them separately to wherever  //
+// I want.                                         //
+/////////////////////////////////////////////////////
+
 // TODO: Use es module instead!!!
 const fs = require('fs');
 const { execSync } = require('child_process');
@@ -12,11 +19,11 @@ const COMMAND_PIPE = '/tmp/command_pipe';
 const MAX_MESSAGE_SIZE = 1000000;  // 1MB
 
 // Create command pipe if it doesn't exist
-console.log('Checking command pipe...');
+console.error('Checking command pipe...');
 try {
     if (!fs.existsSync(COMMAND_PIPE)) {
         execSync(`mkfifo ${COMMAND_PIPE}`);
-        console.log(`Created pipe: ${COMMAND_PIPE}`);
+        console.error(`Created pipe: ${COMMAND_PIPE}`);
     }
 } catch (error) {
     console.error('Error creating command pipe:', error);
@@ -34,7 +41,7 @@ let commandStream = null;  // Make this global so cleanup handler can access it
 
 // Socket server setup
 const server = net.createServer((socket) => {
-    console.log('DOSBox-X connected');
+    console.error('DOSBox-X connected');
     
     socket.on('data', (data) => {
         if (shouldLog) {
@@ -48,7 +55,7 @@ const server = net.createServer((socket) => {
     });
 
     socket.on('close', () => {
-        console.log('DOSBox-X disconnected');
+        console.error('DOSBox-X disconnected');
     });
 });
 
@@ -57,24 +64,24 @@ function handleCommand(command) {
     switch (command) {
         case 'd':
             shouldLog = false;
-            console.log('Logging disabled');
+            console.error('Logging disabled');
             break;
         case 'l':
             shouldLog = true;
-            console.log('Logging enabled');
+            console.error('Logging enabled');
             break;
         default:
-            console.log(`Unknown command: ${command}`);
+            console.error(`Unknown command: ${command}`);
     }
 }
 
 // Set up command pipe reader with non-blocking open
 function setupCommandPipe() {
     const commandStream = fs.createReadStream(COMMAND_PIPE, { flags: 'r' });
-    console.log('Opening command pipe...');
+    console.error('Opening command pipe...');
     
     commandStream.on('ready', () => {
-        console.log('Command pipe connected');
+        console.error('Command pipe connected');
     });
 
     commandStream.on('data', (data) => {
@@ -88,8 +95,8 @@ function setupCommandPipe() {
 
     // When the pipe ends (writer closes), set up a new reader
     commandStream.on('end', () => {
-        console.log('Command pipe ended.');
-        console.log('Reconnecting to command pipe...');
+        console.error('Command pipe ended.');
+        console.error('Reconnecting to command pipe...');
         // TODO: This might cause tons of memory leaks and stuff, no?
         // Well if it works it works but it does not make sense how pipes work!
         setTimeout(setupCommandPipe, 100); // Reconnect after a short delay
@@ -100,7 +107,7 @@ function setupCommandPipe() {
 function main() {
     // Start the socket server
     server.listen(SOCKET_PATH, () => {
-        console.log(`Socket server listening on ${SOCKET_PATH}`);
+        console.error(`Socket server listening on ${SOCKET_PATH}`);
     });
 
     server.on('error', (err) => {
@@ -112,11 +119,11 @@ function main() {
 
     // Handle cleanup on exit
     process.on('SIGINT', () => {
-        console.log('\nCleaning up...');
+        console.error('\nCleaning up...');
 
         if (commandStream) {
             commandStream.destroy();
-            console.log('Command stream destroyed');
+            console.error('Command stream destroyed');
         }
         
         // socket.destroy();
@@ -129,9 +136,9 @@ function main() {
         // process.exit();
     });
 
-    console.log('Debug UI started. Commands:');
-    console.log('  d - disable logging');
-    console.log('  l - enable logging');
+    console.error('Debug UI started. Commands:');
+    console.error('  d - disable logging');
+    console.error('  l - enable logging');
 }
 
 main();
