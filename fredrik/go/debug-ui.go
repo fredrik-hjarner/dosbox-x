@@ -41,14 +41,34 @@ func main() {
 	}
 	log.Println("Client connected")
 
-	// Read data and write to stdout
-	buffer := make([]byte, 4096)
+	// Create a channel for the data
+	dataChan := make(chan []byte, 100*1024) // Buffer size of 100kb
+
+	// Start writer goroutine
+	go func() {
+		for data := range dataChan {
+			os.Stdout.Write(data)
+		}
+	}()
+
+	// Allocate buffer once
+	data := make([]byte, 1024*50)
+
+	// Read from socket
 	for {
-		n, err := conn.Read(buffer)
+		n, err := conn.Read(data)
 		if err != nil {
 			log.Println("Client disconnected")
 			return
 		}
-		os.Stdout.Write(buffer[:n]) // Write received data to stdout
+
+		select {
+		case dataChan <- data[:n]:
+			// Data sent
+		default:
+			log.Println("Warning: Dropping debug output - terminal too slow")
+			// os.Exit(1)
+			dataChan <- data[:n] // This is admittedly pretty retarded.
+		}
 	}
 }
