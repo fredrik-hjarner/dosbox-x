@@ -91,7 +91,20 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
 
 static std::set<std::string> uniqueAddresses;
 
-
+static bool IsVsync(uint16_t segment, uint32_t offset) {
+    if (segment == 0x565A) {
+        if (offset == 0x134A) {
+            return true;
+        }
+        if (offset == 0x134B) {
+            return true;
+        }
+        if (offset == 0x134D) {
+            return true;
+        }
+    }
+	return false;
+}
 
 static bool IsGraphics565A(uint16_t segment) {
 	return segment == 0x565A; // This code includes the loop waiting for vertical trace.
@@ -122,6 +135,13 @@ static bool IsVideoBIOS(uint16_t segment) {
 
 static bool IsMotherboardBIOS(uint16_t segment) {
 	return (segment >= 0xF000 && segment <= 0xFFFF);
+}
+
+static bool SkipSendingInstruction(uint16_t segment, uint32_t offset) {
+    if (IsVsync(segment, offset)) {
+        return true;
+    }
+    return false;
 }
 
 #include <fcntl.h>
@@ -208,10 +228,14 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
                  << std::setw(4) << SegValue(cs) << ":"
                  << std::setw(4) << reg_eip;
     std::string address = addressStream.str();
+
+    bool skipInstruction = SkipSendingInstruction(segValue, eipValue);
+    bool keepInstruction = !skipInstruction;
     
     // Only add to buffer if this is a new address
     // if (uniqueAddresses.insert(address).second || true) { // TODO: The true is just a hack. I wanted to test to output it all.
-    if (uniqueAddresses.insert(address).second) { // TODO: The true is just a hack. I wanted to test to output it all.
+    // if (uniqueAddresses.insert(address).second && keepInstruction) {
+    if (keepInstruction) {
       
         buffer << LogInstructionWithHardCodedValues(segValue, eipValue);
 
