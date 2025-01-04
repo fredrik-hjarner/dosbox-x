@@ -212,8 +212,10 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
         << " EDX:" << setw(8) << reg_edx
 	    << " ESI:" << setw(8) << reg_esi
         << " EDI:" << setw(8) << reg_edi
-	    << " EBP:" << setw(8) << reg_ebp
-        << " ESP:" << setw(8) << reg_esp
+	    // << " EBP:" << setw(8) << reg_ebp
+        // << " ESP:" << setw(8) << reg_esp
+        << " EBP:" << setw(4) << reg_bp // Not 100% sure I can rely on bp and sp being just within 16bits.
+        << " ESP:" << setw(4) << reg_sp  // Not 100% sure I can rely on bp and sp being just within 16bits.
 	    << " DS:"  << setw(4) << SegValue(ds)
         << " ES:"  << setw(4) << SegValue(es);
 
