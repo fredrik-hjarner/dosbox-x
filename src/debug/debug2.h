@@ -203,7 +203,7 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
         for (Bitu i = 0; i < 21 - len; i++) ibytes[len + i] = ' ';
         ibytes[21] = 0;
     }
-    out << setw(4) << SegValue(cs) << ":" << setw(8) << reg_eip << "  " << dline << "  " << res << "  " << ibytes;
+    out << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip << "  " << dline << "  " << res << "  " << ibytes;
 
 	out
         << " EAX:" << setw(8) << reg_eax
