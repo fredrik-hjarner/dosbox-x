@@ -148,6 +148,10 @@ static bool IsMotherboardBIOS(uint16_t segment) {
 static bool SkipSendingInstruction(uint16_t segment, uint32_t offset) {
     if (IsVsync(segment, offset)) {
         return true;
+    } else if (IsMotherboardBIOS(segment)) {
+        return true;
+    } else if (IsVideoBIOS(segment)) {
+        return true;
     }
     return false;
 }
