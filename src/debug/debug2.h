@@ -1,159 +1,7 @@
 // No. Dont add any includes!!!
-
-// static void LogInstruction(uint16_t segValue, uint32_t eipValue,  ofstream& out) {
-
-// 	static char empty[23] = { 32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,0 };
-
-// 	if (cpuLogType == 3) { //Log only cs:ip.
-// 		out << setw(4) << SegValue(cs) << ":" << setw(8) << reg_eip << endl;
-// 		return;
-// 	}
-
-// 	PhysPt start = (PhysPt)GetAddress(segValue,eipValue);
-// 	char dline[200];Bitu size;
-// 	size = DasmI386(dline, start, reg_eip, cpu.code.big);
-// 	char* res = empty;
-// 	if (showExtend && (cpuLogType > 0) ) {
-// 		res = AnalyzeInstruction(dline,false);
-// 		if (!res || !(*res)) res = empty;
-// 		Bitu reslen = strlen(res);
-//         if (reslen < 22) {
-//             memset(res + reslen, ' ', 22 - reslen);
-//             res[22] = 0;
-//         }
-// 	}
-// 	Bitu len = strlen(dline);
-//     if (len < 30) {
-//         memset(dline + len, ' ', 30 - len);
-//         dline[30] = 0;
-//     }
-
-// 	// Get register values
-
-// 	if(cpuLogType == 0) {
-// 		out << setw(4) << SegValue(cs) << ":" << setw(4) << reg_eip << "  " << dline;
-// 	} else if (cpuLogType == 1) {
-// 		out << setw(4) << SegValue(cs) << ":" << setw(8) << reg_eip << "  " << dline << "  " << res;
-// 	} else if (cpuLogType == 2) {
-// 		char ibytes[200]="";	char tmpc[200];
-// 		for (Bitu i=0; i<size; i++) {
-// 			uint8_t value;
-// 			if (mem_readb_checked((PhysPt)(start+i),&value)) sprintf(tmpc,"%s","?? ");
-// 			else sprintf(tmpc,"%02X ",value);
-// 			strcat(ibytes,tmpc);
-// 		}
-// 		len = strlen(ibytes);
-//         if (len < 21) {
-//             for (Bitu i = 0; i < 21 - len; i++) ibytes[len + i] = ' ';
-//             ibytes[21] = 0;
-//         }
-// 		out << setw(4) << SegValue(cs) << ":" << setw(8) << reg_eip << "  " << dline << "  " << res << "  " << ibytes;
-// 	}
-
-// 	out << " EAX:" << setw(8) << reg_eax << " EBX:" << setw(8) << reg_ebx
-// 	    << " ECX:" << setw(8) << reg_ecx << " EDX:" << setw(8) << reg_edx
-// 	    << " ESI:" << setw(8) << reg_esi << " EDI:" << setw(8) << reg_edi
-// 	    << " EBP:" << setw(8) << reg_ebp << " ESP:" << setw(8) << reg_esp
-// 	    << " DS:"  << setw(4) << SegValue(ds)<< " ES:"  << setw(4) << SegValue(es);
-
-// 	if(cpuLogType == 0) {
-// 		out << " SS:"  << setw(4) << SegValue(ss) << " C"  << (get_CF()>0)  << " Z"   << (get_ZF()>0)
-// 		    << " S" << (get_SF()>0) << " O"  << (get_OF()>0) << " I"  << GETFLAGBOOL(IF);
-// 	} else {
-// 		out << " FS:"  << setw(4) << SegValue(fs) << " GS:"  << setw(4) << SegValue(gs)
-// 		    << " SS:"  << setw(4) << SegValue(ss)
-// 		    << " CF:"  << (get_CF()>0)  << " ZF:"   << (get_ZF()>0)  << " SF:"  << (get_SF()>0)
-// 		    << " OF:"  << (get_OF()>0)  << " AF:"   << (get_AF()>0)  << " PF:"  << (get_PF()>0)
-// 		    << " IF:"  << GETFLAGBOOL(IF);
-// 	}
-// 	if(cpuLogType == 2) {
-// 		out << " TF:" << GETFLAGBOOL(TF) << " VM:" << GETFLAGBOOL(VM) <<" FLG:" << setw(8) << reg_flags
-// 		    << " CR0:" << setw(8) << cpu.cr0;
-// 	}
-// 	out << endl;
-// }
-
 // Ignore that these imports are incomplete or look weird. It is correct.
 
-// The function under works. I just keep it in case I screw up the function I use.
-// static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t eipValue) {
-//     // Create out here, we will no longer take it as parameter.
-//     std::stringstream out;
-//     // ofstream out; // This is what type it was originally.
 
-//     // cpuLogFile << hex << noshowbase << setfill('0') << uppercase
-//     out << std::hex << std::noshowbase << std::setfill('0') << std::uppercase;
-
-// 	static char empty[23] = { 32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,0 };
-
-// 	PhysPt start = (PhysPt)GetAddress(segValue,eipValue);
-// 	char dline[200];Bitu size;
-// 	size = DasmI386(dline, start, reg_eip, cpu.code.big);
-// 	char* res = empty;
-
-//     res = AnalyzeInstruction(dline,false);
-//     if (!res || !(*res)) res = empty;
-//     Bitu reslen = strlen(res);
-//     if (reslen < 22) {
-//         memset(res + reslen, ' ', 22 - reslen);
-//         res[22] = 0;
-//     }
-
-// 	Bitu len = strlen(dline);
-//     if (len < 30) {
-//         memset(dline + len, ' ', 30 - len);
-//         dline[30] = 0;
-//     }
-
-// 	// Get register values
-//     char ibytes[200]="";	char tmpc[200];
-//     for (Bitu i=0; i<size; i++) {
-//         uint8_t value;
-//         if (mem_readb_checked((PhysPt)(start+i),&value)) sprintf(tmpc,"%s","?? ");
-//         else sprintf(tmpc,"%02X ",value);
-//         strcat(ibytes,tmpc);
-//     }
-//     len = strlen(ibytes);
-//     if (len < 21) {
-//         for (Bitu i = 0; i < 21 - len; i++) ibytes[len + i] = ' ';
-//         ibytes[21] = 0;
-//     }
-//     out << setw(4) << SegValue(cs) << ":" << setw(8) << reg_eip << "  " << dline << "  " << res << "  " << ibytes;
-
-// 	out
-//         << " EAX:" << setw(8) << reg_eax
-//         << " EBX:" << setw(8) << reg_ebx
-// 	    << " ECX:" << setw(8) << reg_ecx
-//         << " EDX:" << setw(8) << reg_edx
-// 	    << " ESI:" << setw(8) << reg_esi
-//         << " EDI:" << setw(8) << reg_edi
-// 	    << " EBP:" << setw(8) << reg_ebp
-//         << " ESP:" << setw(8) << reg_esp
-// 	    << " DS:"  << setw(4) << SegValue(ds)
-//         << " ES:"  << setw(4) << SegValue(es);
-
-//     out
-//         // << " FS:"  << setw(4) << SegValue(fs) // seem to have no use
-//         // << " GS:"  << setw(4) << SegValue(gs) // seem to have no use
-//         << " SS:"  << setw(4) << SegValue(ss)
-//         << " CF:"  << (get_CF()>0)
-//         << " ZF:"   << (get_ZF()>0)
-//         << " SF:"  << (get_SF()>0)
-//         << " OF:"  << (get_OF()>0)
-//         << " AF:"   << (get_AF()>0)
-//         << " PF:"  << (get_PF()>0)
-//         << " IF:"  << GETFLAGBOOL(IF);
-
-//     out
-//         << " TF:" << GETFLAGBOOL(TF)
-//         << " VM:" << GETFLAGBOOL(VM)
-//         << " FLG:" << setw(8) << reg_flags
-//         << " CR0:" << setw(8) << cpu.cr0;
-
-// 	// out << endl; // scrapping the endline that is added afterwards
-
-//     return out.str();
-// }
 
 
 // This function is only supposed to be responsible for adding the instruction as text,
@@ -162,11 +10,7 @@
 // otherwise it's exactly like the original LogInstruction function.
 // Well actually, another difference is that this returns a string instead of writing to an ofstream that it took in as parameter.
 static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t eipValue) {
-    // Create out here, we will no longer take it as parameter.
     std::stringstream out;
-    // ofstream out; // This is what type it was originally.
-
-    // cpuLogFile << hex << noshowbase << setfill('0') << uppercase
     out << std::hex << std::noshowbase << std::setfill('0') << std::uppercase;
 
 	static char empty[23] = { 32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,0 };
@@ -247,10 +91,7 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
 
 static std::set<std::string> uniqueAddresses;
 
-// << EMS window 1 >> e000-e3ff
-// << EMS window 2 >> e400-e7ff
-// << EMS window 3 >> e800-ebff
-// << EMS window 4 >> ec00-efff
+
 
 static bool IsGraphics565A(uint16_t segment) {
 	return segment == 0x565A; // This code includes the loop waiting for vertical trace.
