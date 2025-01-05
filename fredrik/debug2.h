@@ -61,11 +61,11 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
     }
     out
         << setw(6) << ((SegValue(cs)<<4u)+reg_ip)
-        << "  "
+        << "` "
         << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip
-        << "  "
+        << "` "
         << dline
-        << "  ";
+        << "` ";
 
     // address     dline                res               ibytes
     // 24DF:0194   push word [bp+08]    ss:[FFBA]=0100    FF 76 08
@@ -73,11 +73,12 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
     if(!autoDisassemblerMode) {
         out
             << res
-            << "  ";
+            << "` ";
     }
 
     out
-        << ibytes;
+        << ibytes
+        << "`";
 
     if (!autoDisassemblerMode) {
         // hard exit and explode with error if reg_esi or reg_edi are more than 0xFFFF
@@ -115,7 +116,8 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
     }
 
     out
-        << " IF:"  << GETFLAGBOOL(IF); // might be good to know if in interrupt.
+        << " IF:"  << GETFLAGBOOL(IF) // might be good to know if in interrupt.
+        << "` ";
 
     // out
         // << " TF:" << GETFLAGBOOL(TF) // Trap flag
