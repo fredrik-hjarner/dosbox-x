@@ -181,6 +181,7 @@ static bool IsMotherboardBIOS(uint16_t segment) {
 	return (segment >= 0xF000 && segment <= 0xFFFF);
 }
 
+// Not in use as of now.
 static bool SkipSendingInstruction(uint16_t segment, uint32_t offset) {
     if (IsVsync(segment, offset)) {
         return true;
@@ -262,11 +263,12 @@ public:
 };
 
 std::string GetLabelForAddress(uint16_t segValue, uint32_t eipValue) {
-    // TODO: Add Vsync too.
-    if (IsMotherboardBIOS(SegValue(cs))) {
-        return "Motherboard BIOS";
+    if (IsVsync(segValue, eipValue)) {
+        return "WAIT_FOR_VSYNC";
+    } else if (IsMotherboardBIOS(SegValue(cs))) {
+        return "MOTHERBOARD_BIOS";
     } else if (IsVideoBIOS(SegValue(cs))) {
-        return "Video BIOS";
+        return "VIDEO_BIOS";
     } else if (IsEmsWindow1(SegValue(cs))) {
         return "EMS window 1";
     } else if (IsEmsWindow2(SegValue(cs))) {
@@ -288,17 +290,28 @@ std::string GetLabelForAddress(uint16_t segValue, uint32_t eipValue) {
 // TODO: autoDisassemblerMode does not need UnixSocketSender at all.
 static UnixSocketSender debugSocket;
 
-std::stringstream buffer;
+// When this is 1 it's very very slow, so I added this buffer to speed up things.
+// Things are not outputted immediately, but are collected in buffer for a short while.
+int BUFFER_FLUSH_SIZE = 30;
 int bufferCount = 0;
-int BUFFER_FLUSH_SIZE = 20;
+std::stringstream buffer;
 
 // TODO: Refactor this is getting messy. I could have more small helper functions.
 static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out) {
+    // this is only so that we will not be in a state where no new instructions are logged.
+    // that might otherwise happen, let's say, if we only log unique addresses and there
+    // are no unique addresses for a long while, then there might be sat 15 instructions
+    // in the buffer that will only displayed in we successfully trigger new unique addresses.
+    // When we log all instuctions and not just new instructions then that problem would not
+    // exist though.
+    bufferCount++; // one central place to increment bufferCount.
+
     // In the disassembly I want all instructions.
-    if(!autoDisassemblerMode && SkipSendingInstruction(segValue, eipValue)) {
-        bufferCount++; // always increment bufferCount. I can try not to in the future, dunno.
-        return;
-    }
+    // Not sure I want to even skip in "unique address" mode since
+    // vsync has probably been called thousands of times.
+    // if(!autoDisassemblerMode && SkipSendingInstruction(segValue, eipValue)) {
+    //     return;
+    // }
 
     // Format the address
     std::stringstream addressStream;
@@ -306,18 +319,16 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
                  << std::setw(4) << SegValue(cs) << ":"
                  << std::setw(4) << reg_eip;
     std::string address = addressStream.str();
-    
+
     // Only add to buffer if this is a new address
     // if (uniqueAddresses.insert(address).second || true) { // TODO: The true is just a hack. I wanted to test to output it all.
     if (uniqueAddresses.insert(address).second) {
     // if (true) {
-      
         buffer
             << LogInstructionWithHardCodedValues(segValue, eipValue)
             << GetLabelForAddress(segValue, eipValue)
             << "\n";
     }
-    bufferCount++;
 
     if (bufferCount >= BUFFER_FLUSH_SIZE && buffer.tellp() > 0) {
         std::string bufferAsString = buffer.str();
