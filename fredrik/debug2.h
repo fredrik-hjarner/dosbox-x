@@ -25,12 +25,17 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
 	size = DasmI386(dline, start, reg_eip, cpu.code.big);
 	char* res = empty;
 
-    res = AnalyzeInstruction(dline,false);
-    if (!res || !(*res)) res = empty;
-    Bitu reslen = strlen(res);
-    if (reslen < 22) {
-        memset(res + reslen, ' ', 22 - reslen);
-        res[22] = 0;
+    // address     dline                res               ibytes
+    // 24DF:0194   push word [bp+08]    ss:[FFBA]=0100    FF 76 08
+    // res will be meaningless for autoDisassemblerMode since those are runtime values.
+    if(!autoDisassemblerMode) {
+        res = AnalyzeInstruction(dline,false);
+        if (!res || !(*res)) res = empty;
+        Bitu reslen = strlen(res);
+        if (reslen < 22) {
+            memset(res + reslen, ' ', 22 - reslen);
+            res[22] = 0;
+        }
     }
 
 	Bitu len = strlen(dline);
@@ -54,7 +59,23 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
         }
         ibytes[21] = 0;
     }
-    out << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip << "  " << dline << "  " << res << "  " << ibytes;
+    out
+        << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip
+        << "  "
+        << dline
+        << "  ";
+
+    // address     dline                res               ibytes
+    // 24DF:0194   push word [bp+08]    ss:[FFBA]=0100    FF 76 08
+    // res will be meaningless for autoDisassemblerMode since those are runtime values.
+    if(!autoDisassemblerMode) {
+        out
+            << res
+            << "  ";
+    }
+
+    out
+        << ibytes;
 
     if (!autoDisassemblerMode) {
         // hard exit and explode with error if reg_esi or reg_edi are more than 0xFFFF
@@ -88,9 +109,11 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
             // << " SF:"  << (get_SF()>0)
             // << " OF:"  << (get_OF()>0)
             // << " AF:"   << (get_AF()>0)
-            // << " PF:"  << (get_PF()>0)
-            // << " IF:"  << GETFLAGBOOL(IF);
+            // << " PF:"  << (get_PF()>0);
     }
+
+    out
+        << " IF:"  << GETFLAGBOOL(IF); // might be good to know if in interrupt.
 
     // out
         // << " TF:" << GETFLAGBOOL(TF) // Trap flag
