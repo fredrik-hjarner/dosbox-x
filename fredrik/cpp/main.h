@@ -1,136 +1,11 @@
-// No. Dont add any includes!!!
+#include "globals_and_consts.h"
+#include "address.h"
+#include "address_range.h"
+#include "address_ranges.h"
+#include "get_cpu_instruction_line_string.h"
+
+// No. Dont add any more includes!!!
 // Ignore that these imports are incomplete or look weird. It is correct.
-
-
-bool autoDisassemblerMode = true;
-// autoDisassemblerMode:
-//     true:
-//         Intended to be used to create automatic disassembly. It strips registers and will perhaps do some other stuff.
-//     false:
-//         Used for "live debugging".
-
-// This function is only supposed to be responsible for adding the instruction as text,
-// it has no other responsibilities.
-// I want it to assume cpuLogType == 2 and showExtend == true
-// otherwise it's exactly like the original LogInstruction function.
-// Well actually, another difference is that this returns a string instead of writing to an ofstream that it took in as parameter.
-static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t eipValue) {
-    std::stringstream out;
-    out << std::hex << std::noshowbase << std::setfill('0') << std::uppercase;
-
-	static char empty[23] = { 32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,0 };
-
-	PhysPt start = (PhysPt)GetAddress(segValue,eipValue);
-	char dline[200];Bitu size;
-	size = DasmI386(dline, start, reg_eip, cpu.code.big);
-	char* res = empty;
-
-    // address     dline                res               ibytes
-    // 24DF:0194   push word [bp+08]    ss:[FFBA]=0100    FF 76 08
-    // res will be meaningless for autoDisassemblerMode since those are runtime values.
-    if(!autoDisassemblerMode) {
-        res = AnalyzeInstruction(dline,false);
-        if (!res || !(*res)) res = empty;
-        Bitu reslen = strlen(res);
-        if (reslen < 22) {
-            memset(res + reslen, ' ', 22 - reslen);
-            res[22] = 0;
-        }
-    }
-
-	Bitu len = strlen(dline);
-    if (len < 30) {
-        memset(dline + len, ' ', 30 - len);
-        dline[30] = 0;
-    }
-
-	// Get register values
-    char ibytes[200]="";	char tmpc[200];
-    for (Bitu i=0; i<size; i++) {
-        uint8_t value;
-        if (mem_readb_checked((PhysPt)(start+i),&value)) sprintf(tmpc,"%s","?? ");
-        else sprintf(tmpc,"%02X ",value);
-        strcat(ibytes,tmpc);
-    }
-    len = strlen(ibytes);
-    if (len < 21) {
-        for (Bitu i = 0; i < 21 - len; i++) {
-            ibytes[len + i] = ' ';
-        }
-        ibytes[21] = 0;
-    }
-    out
-        << setw(6) << ((SegValue(cs)<<4u)+reg_ip)
-        << "` "
-        << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip
-        << "` "
-        << dline
-        << "` ";
-
-    // address     dline                res               ibytes
-    // 24DF:0194   push word [bp+08]    ss:[FFBA]=0100    FF 76 08
-    // res will be meaningless for autoDisassemblerMode since those are runtime values.
-    if(!autoDisassemblerMode) {
-        out
-            << res
-            << "` ";
-    }
-
-    out
-        << ibytes
-        << "`";
-
-    if (!autoDisassemblerMode) {
-        // hard exit and explode with error if reg_esi or reg_edi are more than 0xFFFF
-        if (reg_esi > 0xFFFF || reg_edi > 0xFFFF) {
-            std::cerr << "\n\n*** ERROR: reg_esi or reg_edi are more than 0xFFFF ***\n\n" << std::endl;
-            exit(1);
-        }
-
-        out
-            << " A:" << setw(8) << reg_eax
-            << " B:" << setw(8) << reg_ebx
-            << " C:" << setw(8) << reg_ecx
-            << " D:" << setw(8) << reg_edx
-            // << " SI:" << setw(8) << reg_esi
-            // << " DI:" << setw(8) << reg_edi
-            << " SI:" << setw(4) << reg_si
-            << " DI:" << setw(4) << reg_di
-            // << " EBP:" << setw(8) << reg_ebp
-            // << " ESP:" << setw(8) << reg_esp
-            << " BP:" << setw(4) << reg_bp // Not 100% sure I can rely on bp and sp being just within 16bits.
-            << " SP:" << setw(4) << reg_sp  // Not 100% sure I can rely on bp and sp being just within 16bits.
-            << " DS:"  << setw(4) << SegValue(ds)
-            << " ES:"  << setw(4) << SegValue(es);
-
-        out
-            // << " FS:"  << setw(4) << SegValue(fs) // seem to have no use
-            // << " GS:"  << setw(4) << SegValue(gs) // seem to have no use
-            << " SS:"  << setw(4) << SegValue(ss);
-            // << " CF:"  << (get_CF()>0)
-            // << " ZF:"   << (get_ZF()>0)
-            // << " SF:"  << (get_SF()>0)
-            // << " OF:"  << (get_OF()>0)
-            // << " AF:"   << (get_AF()>0)
-            // << " PF:"  << (get_PF()>0);
-    }
-
-    out
-        << " IF:"  << GETFLAGBOOL(IF) // might be good to know if in interrupt.
-        << "` ";
-
-    // out
-        // << " TF:" << GETFLAGBOOL(TF) // Trap flag
-        // << " VM:" << GETFLAGBOOL(VM) // Virtual 8086 mode flag (386+ only). Always zero.
-        // << " FLG:" << setw(8) << reg_flags // I don't know what FLG is.
-        // << " CR0:" << setw(8) << cpu.cr0; // I don't know what CR is.
-
-	// out << endl; // scrapping the endline that is added afterwards
-
-    return out.str();
-}
-
-
 
 
 static std::set<std::string> uniqueAddresses;
@@ -292,7 +167,7 @@ static UnixSocketSender debugSocket;
 
 // When this is 1 it's very very slow, so I added this buffer to speed up things.
 // Things are not outputted immediately, but are collected in buffer for a short while.
-int BUFFER_FLUSH_SIZE = 30;
+int BUFFER_FLUSH_SIZE = autoDisassemblerMode ? 30 : 1;
 int bufferCount = 0;
 std::stringstream buffer;
 
@@ -325,7 +200,7 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     if (uniqueAddresses.insert(address).second) {
     // if (true) {
         buffer
-            << LogInstructionWithHardCodedValues(segValue, eipValue)
+            << GetCpuInstructionLineString(segValue, eipValue, autoDisassemblerMode)
             << GetLabelForAddress(segValue, eipValue)
             << "\n";
     }
@@ -370,6 +245,7 @@ TODO:
   Yes, dosbox-x has save state and load state!
 - I could probably figure out a way to trigger a breakpoint x steps before the breakpoint
   (if the instruction is visible under in code window).
+- Now that I have and Address struct I can have all the "memory ranges" be absolute addresses intead to speed things up.
 
 
 
