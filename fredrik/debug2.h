@@ -60,6 +60,8 @@ static std::string LogInstructionWithHardCodedValues(uint16_t segValue, uint32_t
         ibytes[21] = 0;
     }
     out
+        << setw(6) << ((SegValue(cs)<<4u)+reg_ip)
+        << "  "
         << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip
         << "  "
         << dline
