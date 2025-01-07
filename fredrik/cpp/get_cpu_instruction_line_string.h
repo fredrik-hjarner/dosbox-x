@@ -71,20 +71,22 @@ static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipVa
 
     if (!autoDisassemblerMode) {
         // hard exit and explode with error if reg_esi or reg_edi are more than 0xFFFF
-        if (reg_esi > 0xFFFF || reg_edi > 0xFFFF) {
-            std::cerr << "\n\n*** ERROR: reg_esi or reg_edi are more than 0xFFFF ***\n\n" << std::endl;
-            exit(1);
-        }
+        // TODO: yea one of the WAS larger than 0xFFFF so I need to output it as 32-bit.
+        // TODO: Add such a check for BP and SP too.
+        // if (reg_esi > 0xFFFF || reg_edi > 0xFFFF) {
+        //     std::cerr << "\n\n*** ERROR: reg_esi or reg_edi are more than 0xFFFF ***\n\n" << std::endl;
+        //     exit(1);
+        // }
 
         out
             << " A:" << setw(8) << reg_eax
             << " B:" << setw(8) << reg_ebx
             << " C:" << setw(8) << reg_ecx
             << " D:" << setw(8) << reg_edx
-            // << " SI:" << setw(8) << reg_esi
-            // << " DI:" << setw(8) << reg_edi
-            << " SI:" << setw(4) << reg_si
-            << " DI:" << setw(4) << reg_di
+            << " SI:" << setw(8) << reg_esi
+            << " DI:" << setw(8) << reg_edi
+            // << " SI:" << setw(4) << reg_si
+            // << " DI:" << setw(4) << reg_di
             // << " EBP:" << setw(8) << reg_ebp
             // << " ESP:" << setw(8) << reg_esp
             << " BP:" << setw(4) << reg_bp // Not 100% sure I can rely on bp and sp being just within 16bits.

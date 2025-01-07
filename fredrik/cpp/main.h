@@ -246,7 +246,12 @@ TODO:
 - I could probably figure out a way to trigger a breakpoint x steps before the breakpoint
   (if the instruction is visible under in code window).
 - Now that I have and Address struct I can have all the "memory ranges" be absolute addresses intead to speed things up.
-
+- Make a IsResidentCode function, i.e. that the address is not in any overlay.
+  - I could prolly then map each memory location to an address in the KRONDOR.EXE.
+    - That would be helpful because that might aide me to find the code in IDA.
+    - I probably want to write the file address in the log too because for overlays any other kind of address is meaningless (right?).
+- Add `if (reg_esi > 0xFFFF || reg_edi > 0xFFFF) {` but for SP and BP too so I am sure they never get larger than 0xFFFF.
+   - because that's my assumption but it can be wrong.
 
 
 
