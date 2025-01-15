@@ -172,6 +172,8 @@ int BUFFER_FLUSH_SIZE = autoDisassemblerMode ? 30 : 1;
 int bufferCount = 0;
 std::stringstream buffer;
 
+bool have_reached_entry_point = false;
+
 // TODO: Refactor this is getting messy. I could have more small helper functions.
 static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out) {
     // this is only so that we will not be in a state where no new instructions are logged.
@@ -181,6 +183,16 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     // When we log all instuctions and not just new instructions then that problem would not
     // exist though.
     bufferCount++; // one central place to increment bufferCount.
+
+    if (!have_reached_entry_point) {
+        // 0823:0000 is the entry point
+        if (segValue == 0x0823 && eipValue == 0x0000) {
+            have_reached_entry_point = true;
+        } else {
+            // Skip logging/tracing until we've reached the entry point.
+            return;
+        }
+    }
 
     // In the disassembly I want all instructions.
     // Not sure I want to even skip in "unique address" mode since
@@ -194,22 +206,23 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
         Overlays::enter_stub(segValue);
     }
     bool is_in_overlay = Overlays::is_overlay_segment(segValue);
+    // TODO: This does not look too good.
+    // I'm not happy about the passing of stub_segment into GetCpuInstructionLineString,
+    // that part sucks.
+    uint16_t stub_segment = 0;
     if(is_in_overlay) {
         Overlays::map_overlay(segValue);
+        stub_segment = Overlays::get_stub(segValue);
     }
-    uint16_t stub_segment = Overlays::get_stub(segValue);
 
     // Format the address
     // TODO: This must be optimized.
     std::string address;
     std::stringstream addressStream;
     if(is_in_overlay) {
-        addressStream << "o." << stub_segment << ":"
-            << std::setw(4) << reg_eip;
+        addressStream << "o." << stub_segment << ":" << reg_eip;
     } else {
-        addressStream << std::hex << std::uppercase << std::setfill('0') 
-            << std::setw(4) << SegValue(cs) << ":"
-            << std::setw(4) << reg_eip;
+        addressStream << SegValue(cs) << ":" << reg_eip;
     }
     address = addressStream.str();
 
@@ -272,6 +285,8 @@ TODO:
    - because that's my assumption but it can be wrong.
 - Ignore instructions until we're gotten into the KRONDOR code.
 - TODO: The overlay stuff and so on must be optimized so that the game does not run slower.
+- TODO: I suspect that there are stuff in 4xxx that gets classified as not overlay in log, but that are overlays.
+- TODO: Error: No stub found for overlay 4476
 
 
 

@@ -114,10 +114,10 @@ public:
     static uint16_t get_stub(uint16_t overlay_segment) {
         auto it = overlay_to_stub.find(overlay_segment);
         if (it == overlay_to_stub.end()) {
-            return 0; // TODO: Temporary to get it to work fast.
+            // return 0; // TODO: Temporary to get it to work fast.
             // TODO: It would be great with error here.
-            // std::cerr << "Error: No stub found for overlay " << overlay_segment << std::endl;
-            // std::exit(1);
+            std::cerr << "Error: No stub found for overlay " << std::hex << std::setfill('0') << std::setw(4) << overlay_segment << std::endl;
+            std::exit(1);
         }
         return it->second;
     }
