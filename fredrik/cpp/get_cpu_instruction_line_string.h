@@ -3,7 +3,7 @@
 // I want it to assume cpuLogType == 2 and showExtend == true
 // otherwise it's exactly like the original LogInstruction function.
 // Well actually, another difference is that this returns a string instead of writing to an ofstream that it took in as parameter.
-static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipValue, bool autoDisassemblerMode) {
+static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipValue, bool autoDisassemblerMode, uint16_t overlay_segment) {
     std::stringstream out;
     out << std::hex << std::noshowbase << std::setfill('0') << std::uppercase;
 
@@ -48,11 +48,22 @@ static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipVa
         }
         ibytes[21] = 0;
     }
+
+    if(overlay_segment != 0) {
+        out
+            << "o." << setw(4) << overlay_segment
+            << "` "
+            << setw(4) << "    " << ":" << setw(4) << reg_ip
+            << "` ";
+    } else {
+        out
+            << setw(6) << ((SegValue(cs)<<4u)+reg_ip)
+            << "` "
+            << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip
+            << "` ";
+    }
+
     out
-        << setw(6) << ((SegValue(cs)<<4u)+reg_ip)
-        << "` "
-        << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip
-        << "` "
         << dline
         << "` ";
 

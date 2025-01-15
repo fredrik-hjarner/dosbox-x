@@ -1,4 +1,5 @@
 #include "globals_and_consts.h"
+#include "overlays.h"
 #include "address.h"
 #include "address_range.h"
 #include "address_ranges.h"
@@ -188,19 +189,36 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     //     return;
     // }
 
+    bool is_in_stub = Overlays::is_stub_segment(segValue);
+    if(is_in_stub) {
+        Overlays::enter_stub(segValue);
+    }
+    bool is_in_overlay = Overlays::is_overlay_segment(segValue);
+    if(is_in_overlay) {
+        Overlays::map_overlay(segValue);
+    }
+    uint16_t stub_segment = Overlays::get_stub(segValue);
+
     // Format the address
+    // TODO: This must be optimized.
+    std::string address;
     std::stringstream addressStream;
-    addressStream << std::hex << std::uppercase << std::setfill('0') 
-                 << std::setw(4) << SegValue(cs) << ":"
-                 << std::setw(4) << reg_eip;
-    std::string address = addressStream.str();
+    if(is_in_overlay) {
+        addressStream << "o." << stub_segment << ":"
+            << std::setw(4) << reg_eip;
+    } else {
+        addressStream << std::hex << std::uppercase << std::setfill('0') 
+            << std::setw(4) << SegValue(cs) << ":"
+            << std::setw(4) << reg_eip;
+    }
+    address = addressStream.str();
 
     // Only add to buffer if this is a new address
     // if (uniqueAddresses.insert(address).second || true) { // TODO: The true is just a hack. I wanted to test to output it all.
     if (uniqueAddresses.insert(address).second) {
     // if (true) {
         buffer
-            << GetCpuInstructionLineString(segValue, eipValue, autoDisassemblerMode)
+            << GetCpuInstructionLineString(segValue, eipValue, autoDisassemblerMode, stub_segment)
             << GetLabelForAddress(segValue, eipValue)
             << "\n";
     }
@@ -252,6 +270,8 @@ TODO:
     - I probably want to write the file address in the log too because for overlays any other kind of address is meaningless (right?).
 - Add `if (reg_esi > 0xFFFF || reg_edi > 0xFFFF) {` but for SP and BP too so I am sure they never get larger than 0xFFFF.
    - because that's my assumption but it can be wrong.
+- Ignore instructions until we're gotten into the KRONDOR code.
+- TODO: The overlay stuff and so on must be optimized so that the game does not run slower.
 
 
 
