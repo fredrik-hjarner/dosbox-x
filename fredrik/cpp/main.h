@@ -11,7 +11,7 @@
 // Ignore that these imports are incomplete or look weird. It is correct.
 
 
-static std::set<std::string> uniqueAddresses;
+static std::set<uint64_t> uniqueAddresses;
 
 inline bool IsVsync(uint16_t segment, uint32_t offset) {
     if (segment == 0x565A) {
@@ -179,20 +179,22 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
         previous_stub_segment = stub_segment;
     }
 
-    // Format the address
-    // TODO: This must be optimized.
-    std::string address;
-    std::stringstream addressStream;
+    uint64_t maybeUniqueAddress = 0;
     if(is_in_overlay) {
-        addressStream << "o." << stub_segment << ":" << reg_eip;
+        // add some number that can never be a valid address
+        // FFFF:FFFF is the last address in the memory map which is 0x10FFEF
+        // so a larger number than that to differentiate an overlay from a resident address.
+        // oooh. not only that I need stub_segment to be unique too so I need to shift it more.
+        // now max number would look like this 100FFFF0FFFF
+        // (observe segment and offset does not overlap).
+        maybeUniqueAddress = ((stub_segment << 0x14) + reg_eip) + 0x100000000000;
     } else {
-        addressStream << SegValue(cs) << ":" << reg_eip;
+        maybeUniqueAddress = (SegValue(cs) << 4u) + reg_eip;
     }
-    address = addressStream.str();
 
     // Only add to buffer if this is a new address
     // if (uniqueAddresses.insert(address).second || true) { // TODO: The true is just a hack. I wanted to test to output it all.
-    if (uniqueAddresses.insert(address).second) {
+    if (uniqueAddresses.insert(maybeUniqueAddress).second) {
     // if (true) {
         buffer
             << GetCpuInstructionLineString(segValue, eipValue, stub_segment)
