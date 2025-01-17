@@ -53,7 +53,11 @@ public:
     //
     // Example:
     //   Overlays::enter_stub(0x3100);  // We're entering the stub at 0x3100
-    static void enter_stub(uint16_t stub_segment, uint16_t offset) { // TODO: I only have offset here to do logging. remove it.`
+    // TODO: I only have offset here to do logging. remove it.
+    static void enter_stub(
+        uint16_t stub_segment
+        // uint16_t offset
+    ) {
         // log to stderr that this was entered
         // std::cerr
         //     << "Entered stub " << std::hex << std::setfill('0') << std::setw(4) << stub_segment
@@ -123,22 +127,31 @@ public:
     //
     // Example:
     //   uint16_t stub = Overlays::get_stub(0x4500);  // What stub owns this overlay?
-    static uint16_t get_stub(uint16_t overlay_segment, uint16_t offset) { // TODO: I only have offset here to do logging. remove it.
+    // TODO: I only have offset here to do logging. remove it.
+    static uint16_t get_stub(
+        uint16_t overlay_segment
+        // uint16_t offset
+    ) {
         auto it = overlay_to_stub.find(overlay_segment);
         if (it == overlay_to_stub.end()) {
             // return 0; // TODO: Temporary to get it to work fast.
             // TODO: It would be great with error here.
             std::cerr
                 << "Error: No stub found for overlay " << std::hex << std::setfill('0') << std::setw(4) << overlay_segment
-                << ":" << std::hex << std::setfill('0') << std::setw(4) << offset << std::endl;
+                // << ":" << std::hex << std::setfill('0') << std::setw(4) << offset
+                << std::endl;
             std::cerr
                 << "Previous address: "
                 << std::hex <<std::setfill('0') << std::setw(4) << previous_segment
-                << ":" << std::hex << std::setfill('0') << std::setw(4)
-                << previous_offset << std::endl;
+                // << ":" << std::hex << std::setfill('0') << std::setw(4)
+                // << previous_offset
+                << std::endl;
+
+#ifdef SAVE_INSTRUCTIONS_HISTORY
             std::cerr
                 << "Previous instruction: \n"
                 << previous_instruction << std::endl;
+#endif
 
             // TODO: clean this up man.
             auto stub_segment = Overlays2::get_stub_for_overlay(overlay_segment);

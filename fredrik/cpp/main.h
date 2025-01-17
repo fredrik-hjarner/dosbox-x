@@ -133,7 +133,11 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
 
     bool is_in_stub = Overlays::is_stub_segment(segValue);
     if(is_in_stub) {
-        Overlays::enter_stub(segValue, eipValue); // TODO: I only have offset here to do logging. remove it.
+        // TODO: I only have offset here to do logging. remove it.
+        Overlays::enter_stub(
+            segValue
+            // eipValue
+        );
     }
     bool is_in_overlay = Overlays::is_overlay_segment(segValue);
     // TODO: This does not look too good.
@@ -145,7 +149,11 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
         // when I enter the segment via 3xxx segment.
         // so it is not logged any other time, i.e. only entering the segment will be logged.
         Overlays::map_overlay(segValue);
-        stub_segment = Overlays::get_stub(segValue, eipValue); // TODO: I only have offset here to do logging. remove it.
+        // TODO: I only have offset here to do logging. remove it.
+        stub_segment = Overlays::get_stub(
+            segValue
+            // eipValue
+        );
     }
     // TODO: yea I really need to start to clean up the code, Im adding
     // logs n stuf all over the place.
@@ -208,8 +216,11 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
 
     // remember to save the previous segment and offset.
     previous_segment = segValue;
-    previous_offset = eipValue;
+    // previous_offset = eipValue;
+
+#ifdef SAVE_INSTRUCTIONS_HISTORY
     previous_instruction = GetCpuInstructionLineString(segValue, eipValue, autoDisassemblerMode, stub_segment);
+#endif
 }
 
 /*

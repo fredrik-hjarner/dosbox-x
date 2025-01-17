@@ -1,3 +1,10 @@
+/////////////////////////////////////////////////////
+// DEFINES                                         //
+/////////////////////////////////////////////////////
+
+// TODO: Write a good comment for this.
+// #define SAVE_INSTRUCTIONS_HISTORY
+
 //////////////////////
 // CONSTS           //
 //////////////////////
@@ -18,8 +25,10 @@ constexpr bool autoDisassemblerMode = true;
 // Store previous segment and offset
 // will be helpful when debugging.
 uint16_t previous_segment = 0;
-uint16_t previous_offset = 0;
+// uint16_t previous_offset = 0;
+#ifdef SAVE_INSTRUCTIONS_HISTORY
 std::string previous_instruction = "";
+#endif
 //
 uint16_t previous_stub_segment = 0;
 
