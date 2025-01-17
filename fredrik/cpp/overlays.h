@@ -53,7 +53,11 @@ public:
     //
     // Example:
     //   Overlays::enter_stub(0x3100);  // We're entering the stub at 0x3100
-    static void enter_stub(uint16_t stub_segment) {
+    static void enter_stub(uint16_t stub_segment, uint16_t offset) { // TODO: I only have offset here to do logging. remove it.`
+        // log to stderr that this was entered
+        // std::cerr
+        //     << "Entered stub " << std::hex << std::setfill('0') << std::setw(4) << stub_segment
+        //     << ":" << std::hex << std::setfill('0') << std::setw(4) << offset << std::endl;
         current_stub = stub_segment;
     }
     
@@ -84,17 +88,25 @@ public:
             return; // TODO: Temporary to get it to work fast.
         }
 
+        return _map_overlay(overlay_segment, current_stub);
+    }
+
+    static void _map_overlay(uint16_t overlay_segment, uint16_t stub_segment) {
         // If this stub was mapped somewhere else, remove that mapping
         // This ensures a stub only exists at one overlay location at a time
-        auto old_location = stub_to_overlay.find(current_stub);
+        auto old_location = stub_to_overlay.find(stub_segment);
         if (old_location != stub_to_overlay.end()) {
+            // log to stderr simply that this was removed
+            // std::cerr << "Removed old mapping for stub " << std::hex << std::setfill('0') << std::setw(4) << current_stub << " from overlay " << std::hex << std::setfill('0') << std::setw(4) << old_location->second << std::endl;
             overlay_to_stub.erase(old_location->second);
         }
 
         // Create new mappings in both directions
-        overlay_to_stub[overlay_segment] = current_stub;
-        stub_to_overlay[current_stub] = overlay_segment;
-        current_stub = 0;  // Reset to prevent accidental reuse
+        // log to stderr that this was created
+        // std::cerr << "Created new mapping for stub " << std::hex << std::setfill('0') << std::setw(4) << current_stub << " at overlay " << std::hex << std::setfill('0') << std::setw(4) << overlay_segment << std::endl;
+        overlay_to_stub[overlay_segment] = stub_segment;
+        stub_to_overlay[stub_segment] = overlay_segment;
+        stub_segment = 0;  // Reset to prevent accidental reuse
     }
     
     // Look up which stub segment corresponds to an overlay buffer location
@@ -111,13 +123,27 @@ public:
     //
     // Example:
     //   uint16_t stub = Overlays::get_stub(0x4500);  // What stub owns this overlay?
-    static uint16_t get_stub(uint16_t overlay_segment) {
+    static uint16_t get_stub(uint16_t overlay_segment, uint16_t offset) { // TODO: I only have offset here to do logging. remove it.
         auto it = overlay_to_stub.find(overlay_segment);
         if (it == overlay_to_stub.end()) {
             // return 0; // TODO: Temporary to get it to work fast.
             // TODO: It would be great with error here.
-            std::cerr << "Error: No stub found for overlay " << std::hex << std::setfill('0') << std::setw(4) << overlay_segment << std::endl;
-            std::exit(1);
+            std::cerr
+                << "Error: No stub found for overlay " << std::hex << std::setfill('0') << std::setw(4) << overlay_segment
+                << ":" << std::hex << std::setfill('0') << std::setw(4) << offset << std::endl;
+            std::cerr
+                << "Previous address: "
+                << std::hex <<std::setfill('0') << std::setw(4) << previous_segment
+                << ":" << std::hex << std::setfill('0') << std::setw(4)
+                << previous_offset << std::endl;
+            std::cerr
+                << "Previous instruction: \n"
+                << previous_instruction << std::endl;
+
+            // TODO: clean this up man.
+            auto stub_segment = Overlays2::get_stub_for_overlay(overlay_segment);
+            _map_overlay(overlay_segment, stub_segment);
+            return stub_segment;
         }
         return it->second;
     }

@@ -1,0 +1,100 @@
+// The purpose of this file:
+// When the other method does not work to find out which stub
+// corresponds to an overlay, we need a more thorough analysis.
+// We need to go through all stub headers and see
+// which stub corresponds to the overlay of interest.
+
+// Word at place 0x10 the stub header is stored where in the overlay buffer
+// the overlay is placed/loaded.
+// Looks like it's zero when it's not loaded.
+const uint32_t stub_header_overlay_buffer_segments[] = {
+    // segment times 16 plus the offset of 16 that I was talking about.
+    0x3047 * 0x10 + 0x10,
+    0x304E * 0x10 + 0x10,
+    0x3052 * 0x10 + 0x10,
+    0x3059 * 0x10 + 0x10,
+    0x305C * 0x10 + 0x10,
+    0x3063 * 0x10 + 0x10,
+    0x3069 * 0x10 + 0x10,
+    0x306C * 0x10 + 0x10,
+    0x306F * 0x10 + 0x10,
+    0x3072 * 0x10 + 0x10,
+    0x3082 * 0x10 + 0x10,
+    0x3085 * 0x10 + 0x10,
+    0x3096 * 0x10 + 0x10,
+    0x309A * 0x10 + 0x10,
+    0x30A2 * 0x10 + 0x10,
+    0x30AA * 0x10 + 0x10,
+    0x30AF * 0x10 + 0x10,
+    0x30B6 * 0x10 + 0x10,
+    0x30BA * 0x10 + 0x10,
+    0x30C5 * 0x10 + 0x10,
+    0x30D0 * 0x10 + 0x10,
+    0x30D7 * 0x10 + 0x10,
+    0x30E0 * 0x10 + 0x10,
+    0x30E6 * 0x10 + 0x10,
+    0x30ED * 0x10 + 0x10,
+    0x30F3 * 0x10 + 0x10,
+    0x30F9 * 0x10 + 0x10,
+    0x30FC * 0x10 + 0x10,
+    0x3101 * 0x10 + 0x10,
+    0x3104 * 0x10 + 0x10,
+    0x310D * 0x10 + 0x10,
+    0x3114 * 0x10 + 0x10,
+    0x312A * 0x10 + 0x10,
+    0x3136 * 0x10 + 0x10,
+    0x3146 * 0x10 + 0x10,
+    0x314D * 0x10 + 0x10,
+    0x3154 * 0x10 + 0x10,
+    0x315B * 0x10 + 0x10,
+    0x316D * 0x10 + 0x10,
+    0x3173 * 0x10 + 0x10,
+    0x3176 * 0x10 + 0x10,
+    0x317F * 0x10 + 0x10,
+    0x3184 * 0x10 + 0x10,
+    0x318D * 0x10 + 0x10,
+    0x3192 * 0x10 + 0x10,
+    0x31A8 * 0x10 + 0x10,
+    0x31B4 * 0x10 + 0x10,
+    0x31BB * 0x10 + 0x10,
+    0x31C3 * 0x10 + 0x10,
+    0x31D4 * 0x10 + 0x10,
+    0x31E0 * 0x10 + 0x10,
+    0x31EC * 0x10 + 0x10,
+    0x31F4 * 0x10 + 0x10,
+    0x31FA * 0x10 + 0x10,
+    0x31FD * 0x10 + 0x10
+};
+
+class Overlays2 {
+public:
+    // Delete constructors/assignment to prevent instantiation
+    Overlays2() = delete;
+    Overlays2(const Overlays2&) = delete;
+    Overlays2& operator=(const Overlays2&) = delete;
+
+    static uint16_t get_stub_for_overlay(uint16_t overlay_segment) {
+        // use this function to read the word mem_readw_inline
+
+        // so loop through all stub_header_overlay_buffer_segments
+        // and return the word if it's not zero.
+        // if not found then stderr and process exit.
+        for (const auto segment : stub_header_overlay_buffer_segments) {
+            uint16_t word = mem_readw_inline(segment);
+            // log to std err
+            std::cerr
+                << "Checking stub header at "
+                << std::hex << segment << " for overlay " << std::hex
+                << overlay_segment
+                << " got word " << std::hex << word << std::endl;
+            
+            if (word != 0) {
+                std::cerr << "Found stub header at " << std::hex << segment;
+                    
+                return word;
+            }
+        }
+        std::cerr << "No stub found for overlay " << std::hex << overlay_segment << std::endl;
+        std::exit(1);
+    }
+};

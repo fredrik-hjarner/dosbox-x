@@ -1,4 +1,5 @@
 #include "globals_and_consts.h"
+#include "overlays2.h"
 #include "overlays.h"
 #include "address.h"
 #include "address_range.h"
@@ -203,7 +204,7 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
 
     bool is_in_stub = Overlays::is_stub_segment(segValue);
     if(is_in_stub) {
-        Overlays::enter_stub(segValue);
+        Overlays::enter_stub(segValue, eipValue); // TODO: I only have offset here to do logging. remove it.
     }
     bool is_in_overlay = Overlays::is_overlay_segment(segValue);
     // TODO: This does not look too good.
@@ -211,8 +212,30 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     // that part sucks.
     uint16_t stub_segment = 0;
     if(is_in_overlay) {
+        // Note: So currently, I only log the overlay segment
+        // when I enter the segment via 3xxx segment.
+        // so it is not logged any other time, i.e. only entering the segment will be logged.
         Overlays::map_overlay(segValue);
-        stub_segment = Overlays::get_stub(segValue);
+        stub_segment = Overlays::get_stub(segValue, eipValue); // TODO: I only have offset here to do logging. remove it.
+    }
+    // TODO: yea I really need to start to clean up the code, Im adding
+    // logs n stuf all over the place.
+    if(previous_stub_segment != stub_segment) {
+        // we entered a new overlay segment
+        // std::cerr
+        //     // print segment:offset first
+        //     << std::hex << std::setfill('0') << std::setw(4) << previous_segment << ":"
+        //     << std::setfill('0') << std::setw(4) << previous_offset
+        //     << "->"
+        //     << std::hex << std::setfill('0') << std::setw(4) << segValue << ":"
+        //     << std::setfill('0') << std::setw(4) << eipValue
+
+        //     << "   o." << std::hex << std::setfill('0') << std::setw(4) << previous_stub_segment
+        //     << "->o."
+        //     << std::hex << std::setfill('0') << std::setw(4) << stub_segment
+            
+        //     << std::endl;
+        previous_stub_segment = stub_segment;
     }
 
     // Format the address
@@ -254,6 +277,10 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
         bufferCount = 0;
     }
 
+    // remember to save the previous segment and offset.
+    previous_segment = segValue;
+    previous_offset = eipValue;
+    previous_instruction = GetCpuInstructionLineString(segValue, eipValue, autoDisassemblerMode, stub_segment);
 }
 
 /*
@@ -287,6 +314,18 @@ TODO:
 - TODO: The overlay stuff and so on must be optimized so that the game does not run slower.
 - TODO: I suspect that there are stuff in 4xxx that gets classified as not overlay in log, but that are overlays.
 - TODO: Error: No stub found for overlay 4476
+    - Error: No stub found for overlay 4494:0247
+        - Entered stub 305c:0020
+          Removed old mapping for stub 305c from overlay 4984
+          Created new mapping for stub 305c at overlay 4984
+          Error: No stub found for overlay 4494:0247
+ - learn how to set a breakpoint via code, I can bp on error for example.
+ - clean up and speed up the code. I think the auto-disassembler mode works fully now.
+ - change how overlay stuff is logged. I want to log o.XXXX as normal segment
+   instead, can leave linear address empty maybe.
+ - make sure that the overlay stuff works by doing my longer time check (in Overlay2),
+   so I'm 100% sure it works. 
+
 
 
 
