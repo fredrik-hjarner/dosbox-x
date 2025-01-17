@@ -1,7 +1,6 @@
 #include "globals_and_consts.h"
 #include "debug_socket.h"
 #include "overlays2.h"
-#include "overlays.h"
 // #include "address.h"
 // #include "address_range.h"
 // #include "address_ranges.h"
@@ -135,48 +134,13 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     //     return;
     // }
 
-    bool is_in_stub = Overlays::is_stub_segment(segValue);
-    if(is_in_stub) {
-        // TODO: I only have offset here to do logging. remove it.
-        Overlays::enter_stub(
-            segValue
-            // eipValue
-        );
-    }
-    bool is_in_overlay = Overlays::is_overlay_segment(segValue);
-    // TODO: This does not look too good.
-    // I'm not happy about the passing of stub_segment into GetCpuInstructionLineString,
-    // that part sucks.
+    bool is_in_overlay = Overlays2::is_overlay_segment(segValue);
+    // TODO:
+    // I'm not too happy about the passing of stub_segment into
+    // GetCpuInstructionLineString.
     uint16_t stub_segment = 0;
     if(is_in_overlay) {
-        // Note: So currently, I only log the overlay segment
-        // when I enter the segment via 3xxx segment.
-        // so it is not logged any other time, i.e. only entering the segment will be logged.
-        Overlays::map_overlay(segValue);
-        // TODO: I only have offset here to do logging. remove it.
-        stub_segment = Overlays::get_stub(
-            segValue
-            // eipValue
-        );
-    }
-    // TODO: yea I really need to start to clean up the code, Im adding
-    // logs n stuf all over the place.
-    if(previous_stub_segment != stub_segment) {
-        // we entered a new overlay segment
-        // std::cerr
-        //     // print segment:offset first
-        //     << std::hex << std::setfill('0') << std::setw(4) << previous_segment << ":"
-        //     << std::setfill('0') << std::setw(4) << previous_offset
-        //     << "->"
-        //     << std::hex << std::setfill('0') << std::setw(4) << segValue << ":"
-        //     << std::setfill('0') << std::setw(4) << eipValue
-
-        //     << "   o." << std::hex << std::setfill('0') << std::setw(4) << previous_stub_segment
-        //     << "->o."
-        //     << std::hex << std::setfill('0') << std::setw(4) << stub_segment
-            
-        //     << std::endl;
-        previous_stub_segment = stub_segment;
+        stub_segment = Overlays2::get_stub_for_overlay(segValue);
     }
 
     uint64_t maybeUniqueAddress = 0;

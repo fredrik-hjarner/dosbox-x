@@ -7,13 +7,28 @@
 // Word at place 0x10 the stub header is stored where in the overlay buffer
 // the overlay is placed/loaded.
 // Looks like it's zero when it's not loaded.
-const uint32_t stub_header_overlay_buffer_segments[] = {
+
+// Purpose:
+// This class manages the dynamic mapping between fixed stub segments (0x3000-0x3FFF)
+// and their corresponding overlay buffer locations (0x4000-0x4FFF) in a DOS
+// real-mode environment.
+//
+// How Overlays Work:
+// - Stub segments (0x3xxx) contain fixed code that loads overlays
+// - Overlay buffers (0x4xxx) are where the actual overlay code gets loaded
+// - A single stub can have its overlay loaded at different 4xxx locations over time
+// - Multiple overlay buffers can exist simultaneously
+// - When an overlay moves, its old location becomes invalid
+
+#include <list>
+
+static std::list<uint32_t> stub_header_overlay_buffer_segments = {
     // segment times 16 plus the offset of 16 that I was talking about.
     0x303A * 0x10 + 0x10,
     0x303D * 0x10 + 0x10,
-    // 0x3041 * 0x10 + 0x10, // has zero functions
-    // 0x3043 * 0x10 + 0x10, // has zero functions
-    // 0x3045 * 0x10 + 0x10, // has zero functions
+    0x3041 * 0x10 + 0x10, // has zero functions
+    0x3043 * 0x10 + 0x10, // has zero functions
+    0x3045 * 0x10 + 0x10, // has zero functions
     0x3047 * 0x10 + 0x10,
     0x304A * 0x10 + 0x10,
     0x304E * 0x10 + 0x10,
@@ -77,7 +92,7 @@ const uint32_t stub_header_overlay_buffer_segments[] = {
     0x31BB * 0x10 + 0x10,
     0x31C3 * 0x10 + 0x10,
     0x31D4 * 0x10 + 0x10,
-    // 0x31DE * 0x10 + 0x10, // has zero functions
+    0x31DE * 0x10 + 0x10, // has zero functions
     0x31E0 * 0x10 + 0x10,
     0x31EC * 0x10 + 0x10,
     0x31F1 * 0x10 + 0x10,
@@ -94,6 +109,11 @@ public:
     Overlays2(const Overlays2&) = delete;
     Overlays2& operator=(const Overlays2&) = delete;
 
+    // Helper: Check if a segment is in the overlay range (0x4000-0x4FFF)
+    static bool is_overlay_segment(uint16_t segment) {
+        return (segment >= 0x4000 && segment <= 0x4FFF);
+    }
+
     static uint16_t get_stub_for_overlay(uint16_t overlay_segment) {
         // use this function to read the word mem_readw_inline
 
@@ -101,22 +121,35 @@ public:
         // and return the word if it's not zero.
         // if not found then stderr and process exit.
         // rename segment to stub_header_overlay_buffer_segment
-        for (const auto segment : stub_header_overlay_buffer_segments) {
-            uint16_t word = mem_readw_inline(segment);
+        for (
+            auto it = stub_header_overlay_buffer_segments.begin(); 
+            it != stub_header_overlay_buffer_segments.end();
+            ++it
+        ) {
+            uint16_t word = mem_readw_inline(*it);
             // log to std err
-            std::cerr
-                << "Checking stub header at "
-                << std::hex << segment << " for overlay " << std::hex
-                << overlay_segment
-                << " got word " << std::hex << word << std::endl;
+            // std::cerr
+            //     << "Checking stub header at "
+            //     << std::hex << *it << " for overlay " << std::hex
+            //     << overlay_segment
+            //     << " got word " << std::hex << word << std::endl;
             
             if (word == overlay_segment) {
-                std::cerr << "Found stub header at " << std::hex << segment;
+                // std::cerr << "Found stub header at " << std::hex << *it;
+                
+                // Move this segment to the front of the list since it was just used
+                if (it != stub_header_overlay_buffer_segments.begin()) {
+                    stub_header_overlay_buffer_segments.splice(
+                        stub_header_overlay_buffer_segments.begin(), 
+                        stub_header_overlay_buffer_segments,
+                        it
+                    );
+                }
                 
                 // take the address to the segment IN stub header and
                 // convert to the segment of the stub header
                 // return (segment - 0x10) / 0x10; // TODO: Maybe I can do some bitshifting here.
-                return (segment - 0x10) >> 0x4;
+                return (*it - 0x10) >> 0x4;
             }
         }
         std::cerr << "No stub found for overlay " << std::hex << overlay_segment << std::endl;
