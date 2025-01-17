@@ -3,7 +3,7 @@
 // I want it to assume cpuLogType == 2 and showExtend == true
 // otherwise it's exactly like the original LogInstruction function.
 // Well actually, another difference is that this returns a string instead of writing to an ofstream that it took in as parameter.
-static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipValue, bool autoDisassemblerMode, uint16_t overlay_segment) {
+static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipValue, uint16_t overlay_segment) {
     std::stringstream out;
     out << std::hex << std::noshowbase << std::setfill('0') << std::uppercase;
 
@@ -16,16 +16,16 @@ static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipVa
 
     // address     dline                res               ibytes
     // 24DF:0194   push word [bp+08]    ss:[FFBA]=0100    FF 76 08
-    // res will be meaningless for autoDisassemblerMode since those are runtime values.
-    if(!autoDisassemblerMode) {
-        res = AnalyzeInstruction(dline,false);
-        if (!res || !(*res)) res = empty;
-        Bitu reslen = strlen(res);
-        if (reslen < 22) {
-            memset(res + reslen, ' ', 22 - reslen);
-            res[22] = 0;
-        }
+    // res will be meaningless for AUTO_DISASSEMBLER_MODE since those are runtime values.
+#ifndef AUTO_DISASSEMBLER_MODE
+    res = AnalyzeInstruction(dline,false);
+    if (!res || !(*res)) res = empty;
+    Bitu reslen = strlen(res);
+    if (reslen < 22) {
+        memset(res + reslen, ' ', 22 - reslen);
+        res[22] = 0;
     }
+#endif
 
 	Bitu len = strlen(dline);
     if (len < 30) {
@@ -67,53 +67,53 @@ static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipVa
 
     // address     dline                res               ibytes
     // 24DF:0194   push word [bp+08]    ss:[FFBA]=0100    FF 76 08
-    // res will be meaningless for autoDisassemblerMode since those are runtime values.
-    if(!autoDisassemblerMode) {
-        out
-            << res
-            << "` ";
-    }
+    // res will be meaningless for AUTO_DISASSEMBLER_MODE since those are runtime values.
+#ifndef AUTO_DISASSEMBLER_MODE
+    out
+        << res
+        << "` ";
+#endif
 
     out
         << ibytes
         << "`";
 
-    if (!autoDisassemblerMode) {
-        // hard exit and explode with error if reg_esi or reg_edi are more than 0xFFFF
-        // TODO: yea one of the WAS larger than 0xFFFF so I need to output it as 32-bit.
-        // TODO: Add such a check for BP and SP too.
-        // if (reg_esi > 0xFFFF || reg_edi > 0xFFFF) {
-        //     std::cerr << "\n\n*** ERROR: reg_esi or reg_edi are more than 0xFFFF ***\n\n" << std::endl;
-        //     exit(1);
-        // }
+#ifndef AUTO_DISASSEMBLER_MODE
+    // hard exit and explode with error if reg_esi or reg_edi are more than 0xFFFF
+    // TODO: yea one of the WAS larger than 0xFFFF so I need to output it as 32-bit.
+    // TODO: Add such a check for BP and SP too.
+    // if (reg_esi > 0xFFFF || reg_edi > 0xFFFF) {
+    //     std::cerr << "\n\n*** ERROR: reg_esi or reg_edi are more than 0xFFFF ***\n\n" << std::endl;
+    //     exit(1);
+    // }
 
-        out
-            << " A:" << setw(8) << reg_eax
-            << " B:" << setw(8) << reg_ebx
-            << " C:" << setw(8) << reg_ecx
-            << " D:" << setw(8) << reg_edx
-            << " SI:" << setw(8) << reg_esi
-            << " DI:" << setw(8) << reg_edi
-            // << " SI:" << setw(4) << reg_si
-            // << " DI:" << setw(4) << reg_di
-            // << " EBP:" << setw(8) << reg_ebp
-            // << " ESP:" << setw(8) << reg_esp
-            << " BP:" << setw(4) << reg_bp // Not 100% sure I can rely on bp and sp being just within 16bits.
-            << " SP:" << setw(4) << reg_sp  // Not 100% sure I can rely on bp and sp being just within 16bits.
-            << " DS:"  << setw(4) << SegValue(ds)
-            << " ES:"  << setw(4) << SegValue(es);
+    out
+        << " A:" << setw(8) << reg_eax
+        << " B:" << setw(8) << reg_ebx
+        << " C:" << setw(8) << reg_ecx
+        << " D:" << setw(8) << reg_edx
+        << " SI:" << setw(8) << reg_esi
+        << " DI:" << setw(8) << reg_edi
+        // << " SI:" << setw(4) << reg_si
+        // << " DI:" << setw(4) << reg_di
+        // << " EBP:" << setw(8) << reg_ebp
+        // << " ESP:" << setw(8) << reg_esp
+        << " BP:" << setw(4) << reg_bp // Not 100% sure I can rely on bp and sp being just within 16bits.
+        << " SP:" << setw(4) << reg_sp  // Not 100% sure I can rely on bp and sp being just within 16bits.
+        << " DS:"  << setw(4) << SegValue(ds)
+        << " ES:"  << setw(4) << SegValue(es);
 
-        out
-            // << " FS:"  << setw(4) << SegValue(fs) // seem to have no use
-            // << " GS:"  << setw(4) << SegValue(gs) // seem to have no use
-            << " SS:"  << setw(4) << SegValue(ss);
-            // << " CF:"  << (get_CF()>0)
-            // << " ZF:"   << (get_ZF()>0)
-            // << " SF:"  << (get_SF()>0)
-            // << " OF:"  << (get_OF()>0)
-            // << " AF:"   << (get_AF()>0)
-            // << " PF:"  << (get_PF()>0);
-    }
+    out
+        // << " FS:"  << setw(4) << SegValue(fs) // seem to have no use
+        // << " GS:"  << setw(4) << SegValue(gs) // seem to have no use
+        << " SS:"  << setw(4) << SegValue(ss);
+        // << " CF:"  << (get_CF()>0)
+        // << " ZF:"   << (get_ZF()>0)
+        // << " SF:"  << (get_SF()>0)
+        // << " OF:"  << (get_OF()>0)
+        // << " AF:"   << (get_AF()>0)
+        // << " PF:"  << (get_PF()>0);
+#endif
 
     out
         << " IF:"  << GETFLAGBOOL(IF) // might be good to know if in interrupt.

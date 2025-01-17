@@ -1,10 +1,13 @@
+// AUTO_DISASSEMBLER_MODE does not need UnixSocketSender at all.
+// because it writes to a file instead of a socket.
+#ifndef AUTO_DISASSEMBLER_MODE
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/un.h>
 
-// TODO: autoDisassemblerMode does not need UnixSocketSender at all.
 class UnixSocketSender {
 private:
     int sock_fd;
@@ -67,5 +70,6 @@ public:
     }
 };
 
-// TODO: autoDisassemblerMode does not need UnixSocketSender at all.
 static UnixSocketSender debugSocket;
+
+#endif

@@ -5,16 +5,18 @@
 // TODO: Write a good comment for this.
 // #define SAVE_INSTRUCTIONS_HISTORY
 
-//////////////////////
-// CONSTS           //
-//////////////////////
-
-// autoDisassemblerMode:
+// AUTO_DISASSEMBLER_MODE:
 //     true:
 //         Intended to be used to create automatic disassembly. It strips registers and will perhaps do some other stuff.
 //     false:
 //         Used for "live debugging".
-constexpr bool autoDisassemblerMode = true;
+#define AUTO_DISASSEMBLER_MODE = true;
+
+//////////////////////
+// CONSTS           //
+//////////////////////
+
+
 
 /////////////////////////////////////////////////////
 // GLOBAL VARIABLES                                //

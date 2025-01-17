@@ -13,7 +13,7 @@
 
 static std::set<std::string> uniqueAddresses;
 
-static bool IsVsync(uint16_t segment, uint32_t offset) {
+inline bool IsVsync(uint16_t segment, uint32_t offset) {
     if (segment == 0x565A) {
         if (offset == 0x134A) {
             return true;
@@ -28,34 +28,34 @@ static bool IsVsync(uint16_t segment, uint32_t offset) {
 	return false;
 }
 
-static bool IsGraphics565A(uint16_t segment) {
+inline bool IsGraphics565A(uint16_t segment) {
 	return segment == 0x565A; // This code includes the loop waiting for vertical trace.
 }
-static bool IsGraphics5677(uint16_t segment) {
+inline bool IsGraphics5677(uint16_t segment) {
 	return segment == 0x5677;
 }
-static bool IsGraphics5FBE(uint16_t segment) {
+inline bool IsGraphics5FBE(uint16_t segment) {
 	return segment == 0x5FBE;
 }
 
-static bool IsEmsWindow1(uint16_t segment) {
+inline bool IsEmsWindow1(uint16_t segment) {
 	return (segment >= 0xE000 && segment <= 0xE3FF);
 }
-static bool IsEmsWindow2(uint16_t segment) {
+inline bool IsEmsWindow2(uint16_t segment) {
 	return (segment >= 0xE400 && segment <= 0xE7FF);
 }
-static bool IsEmsWindow3(uint16_t segment) {
+inline bool IsEmsWindow3(uint16_t segment) {
 	return (segment >= 0xE800 && segment <= 0xEBFF);
 }
-static bool IsEmsWindow4(uint16_t segment) {
+inline bool IsEmsWindow4(uint16_t segment) {
 	return (segment >= 0xEC00 && segment <= 0xEFFF);
 }
 
-static bool IsVideoBIOS(uint16_t segment) {
+inline bool IsVideoBIOS(uint16_t segment) {
 	return (segment >= 0xC000 && segment <= 0xC7FF);
 }
 
-static bool IsMotherboardBIOS(uint16_t segment) {
+inline bool IsMotherboardBIOS(uint16_t segment) {
 	return (segment >= 0xF000 && segment <= 0xFFFF);
 }
 
@@ -98,7 +98,11 @@ std::string GetLabelForAddress(uint16_t segValue, uint32_t eipValue) {
 
 // When this is 1 it's very very slow, so I added this buffer to speed up things.
 // Things are not outputted immediately, but are collected in buffer for a short while.
-int BUFFER_FLUSH_SIZE = autoDisassemblerMode ? 30 : 1;
+#ifdef AUTO_DISASSEMBLER_MODE
+    int BUFFER_FLUSH_SIZE = 30;
+#else
+    int BUFFER_FLUSH_SIZE = 1;
+#endif
 int bufferCount = 0;
 std::stringstream buffer;
 
@@ -191,7 +195,7 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     if (uniqueAddresses.insert(address).second) {
     // if (true) {
         buffer
-            << GetCpuInstructionLineString(segValue, eipValue, autoDisassemblerMode, stub_segment)
+            << GetCpuInstructionLineString(segValue, eipValue, stub_segment)
             << GetLabelForAddress(segValue, eipValue)
             << "\n";
     }
@@ -199,16 +203,16 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     if (bufferCount >= BUFFER_FLUSH_SIZE && buffer.tellp() > 0) {
         std::string bufferAsString = buffer.str();
 
-        if(autoDisassemblerMode) {
-            if (!cpuLogFile.is_open()) {
-                cpuLogFile.open("auto_disassembly.txt");
-            }
-            out << bufferAsString; // print to file instead of pipe
-        } else {
-            // Write to socket if connected
-            debugSocket.write(bufferAsString);
-            
+#ifdef AUTO_DISASSEMBLER_MODE
+        if (!cpuLogFile.is_open()) {
+            cpuLogFile.open("auto_disassembly.txt");
         }
+        out << bufferAsString; // print to file instead of pipe
+#else
+        // Write to socket if connected
+        debugSocket.write(bufferAsString);
+#endif
+
         buffer.str("");
         buffer.clear();
         bufferCount = 0;
@@ -219,7 +223,7 @@ static void LogInstruction2(uint16_t segValue, uint32_t eipValue, ofstream& out)
     // previous_offset = eipValue;
 
 #ifdef SAVE_INSTRUCTIONS_HISTORY
-    previous_instruction = GetCpuInstructionLineString(segValue, eipValue, autoDisassemblerMode, stub_segment);
+    previous_instruction = GetCpuInstructionLineString(segValue, eipValue, stub_segment);
 #endif
 }
 
