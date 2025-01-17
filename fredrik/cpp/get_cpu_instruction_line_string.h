@@ -5,12 +5,15 @@
 // Well actually, another difference is that this returns a string instead of writing to an ofstream that it took in as parameter.
 static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipValue, uint16_t overlay_segment) {
     std::stringstream out;
+    // TODO: Do I really need to do this every time with formatting? slow?
+    // Can be optimized?
     out << std::hex << std::noshowbase << std::setfill('0') << std::uppercase;
 
 	static char empty[23] = { 32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,32,0 };
 
 	PhysPt start = (PhysPt)GetAddress(segValue,eipValue);
-	char dline[200];Bitu size;
+	char dline[200];
+    Bitu size;
 	size = DasmI386(dline, start, reg_eip, cpu.code.big);
 	char* res = empty;
 
@@ -34,11 +37,13 @@ static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipVa
     }
 
 	// Get register values
-    char ibytes[200]="";	char tmpc[200];
+    // TODO: This ought to be possible to optimize.
+    char ibytes[100]="";
+    char tmpc[50];
     for (Bitu i=0; i<size; i++) {
         uint8_t value;
-        if (mem_readb_checked((PhysPt)(start+i),&value)) sprintf(tmpc,"%s","?? ");
-        else sprintf(tmpc,"%02X ",value);
+        if (mem_readb_checked((PhysPt)(start+i),&value)) sprintf(tmpc,"%s","??");
+        else sprintf(tmpc,"%02X",value);
         strcat(ibytes,tmpc);
     }
     len = strlen(ibytes);
