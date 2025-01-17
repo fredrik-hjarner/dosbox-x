@@ -51,14 +51,12 @@ static std::string GetCpuInstructionLineString(uint16_t segValue, uint32_t eipVa
 
     if(overlay_segment != 0) {
         out
-            << "o." << setw(4) << overlay_segment
-            << "` "
-            << setw(4) << "    " << ":" << setw(4) << reg_ip
+            << "      ` o" << setw(4) << overlay_segment << ":" << setw(4) << reg_ip
             << "` ";
     } else {
         out
             << setw(6) << ((SegValue(cs)<<4u)+reg_ip)
-            << "` "
+            << "`  " // observe extra space.
             << setw(4) << SegValue(cs) << ":" << setw(4) << reg_ip
             << "` ";
     }

@@ -321,8 +321,6 @@ TODO:
           Error: No stub found for overlay 4494:0247
  - learn how to set a breakpoint via code, I can bp on error for example.
  - clean up and speed up the code. I think the auto-disassembler mode works fully now.
- - change how overlay stuff is logged. I want to log o.XXXX as normal segment
-   instead, can leave linear address empty maybe.
  - make sure that the overlay stuff works by doing my longer time check (in Overlay2),
    so I'm 100% sure it works. 
 
